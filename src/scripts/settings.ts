@@ -77,6 +77,7 @@ export const settingsStore = new Store({
       disableSandbox: true,
       enableWaylandSupport: true,
       gpuRasterization: true,
+      transparentWindows: true,
     },
     hotkeys: getDefaultHotkeyConfig(),
     menuBar: true,
@@ -181,19 +182,28 @@ export const settingsStore = new Store({
         log(`  - migrated theme "${currentTheme}" to "builtin:${currentTheme}"`);
       }
     },
+    "6.3.2": (migrationStore) => {
+      buildMigration("6.3.2", migrationStore, [
+        { key: settings.flags.transparentWindows, value: true },
+      ]);
+    },
   },
 });
 
 export const createSettingsWindow = () => {
+  const transparentWindows = settingsStore.get<string, boolean>(
+    settings.flags.transparentWindows,
+    true,
+  );
+
   settingsWindow = new BrowserWindow({
     width: 650,
     height: 700,
     resizable: true,
     show: false,
-    transparent: false,
-    frame: true,
-    center: true,
-    autoHideMenuBar: true,
+    transparent: transparentWindows,
+    frame: !transparentWindows,
+    autoHideMenuBar: !transparentWindows,
     title: "TIDAL Hi-Fi settings",
     webPreferences: {
       preload: path.join(__dirname, "../pages/settings/preload.js"),
@@ -203,7 +213,10 @@ export const createSettingsWindow = () => {
     },
   });
 
-  settingsWindow.setMenu(null);
+  // setMenu(null) only if frame: true, otherwise a native menu bar would be added
+  if (!transparentWindows) {
+    settingsWindow.setMenu(null);
+  }
 
   settingsWindow.on("close", (event: Event) => {
     if (settingsWindow != null) {
@@ -234,9 +247,18 @@ export const showSettingsWindow = (tab = "general") => {
   // refresh data just before showing the window
   settingsWindow.webContents.send("refreshData");
   settingsWindow.show();
-  settingsWindow.focus();
-  settingsWindow.moveTop();
+
+  // focus/moveTop only for non-transparent mode — Wayland compositors do not focus framed windows automatically
+  const transparentWindows = settingsStore.get<string, boolean>(
+    settings.flags.transparentWindows,
+    true,
+  );
+  if (!transparentWindows) {
+    settingsWindow.focus();
+    settingsWindow.moveTop();
+  }
 };
+
 export const hideSettingsWindow = () => {
   settingsWindow?.hide();
 };
