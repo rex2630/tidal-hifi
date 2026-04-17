@@ -80,6 +80,7 @@ let adBlock: HTMLInputElement,
   ListenBrainzToken: HTMLInputElement,
   listenbrainz_delay: HTMLInputElement,
   enableWaylandSupport: HTMLInputElement,
+  transparentWindows: HTMLInputElement,
   discord_details_prefix: HTMLInputElement,
   discord_include_timestamps: HTMLInputElement,
   discord_button_text: HTMLInputElement,
@@ -233,6 +234,7 @@ function refreshSettings() {
     enableCustomHotkeys.checked = settingsStore.get(settings.enableCustomHotkeys);
     enableDiscord.checked = settingsStore.get(settings.enableDiscord);
     enableWaylandSupport.checked = settingsStore.get(settings.flags.enableWaylandSupport);
+    transparentWindows.checked = settingsStore.get(settings.flags.transparentWindows);
     gpuRasterization.checked = settingsStore.get(settings.flags.gpuRasterization);
     hostname.value = settingsStore.get(settings.apiSettings.hostname);
     menuBar.checked = settingsStore.get(settings.menuBar);
@@ -395,6 +397,7 @@ window.addEventListener("DOMContentLoaded", () => {
   enableCustomHotkeys = get("enableCustomHotkeys");
   enableDiscord = get("enableDiscord");
   enableWaylandSupport = get("enableWaylandSupport");
+  transparentWindows = get("transparentWindows");
   gpuRasterization = get("gpuRasterization");
   hotkeySearch = get("hotkey-search");
   hotkeysList = get("hotkeys-list");
@@ -442,6 +445,7 @@ window.addEventListener("DOMContentLoaded", () => {
   addInputListener(enableDiscord, settings.enableDiscord, switchesWithSettings.discord);
   addInputListener(enableWaylandSupport, settings.flags.enableWaylandSupport);
   addInputListener(gpuRasterization, settings.flags.gpuRasterization);
+  addInputListener(transparentWindows, settings.flags.transparentWindows);
   addInputListener(hostname, settings.apiSettings.hostname);
   addInputListener(menuBar, settings.menuBar);
   addInputListener(minimizeOnClose, settings.minimizeOnClose);
