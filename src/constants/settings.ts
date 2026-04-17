@@ -51,6 +51,7 @@ export const settings = {
     disableSandbox: "flags.disableSandbox",
     gpuRasterization: "flags.gpuRasterization",
     enableWaylandSupport: "flags.enableWaylandSupport",
+    transparentWindows: "flags.transparentWindows",
   },
   hotkeys: {
     root: "hotkeys",
