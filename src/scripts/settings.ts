@@ -77,7 +77,7 @@ export const settingsStore = new Store({
       disableSandbox: true,
       enableWaylandSupport: true,
       gpuRasterization: true,
-      transparentWindows: true,
+      transparentWindows: false,
     },
     hotkeys: getDefaultHotkeyConfig(),
     menuBar: true,
@@ -184,7 +184,7 @@ export const settingsStore = new Store({
     },
     "6.3.2": (migrationStore) => {
       buildMigration("6.3.2", migrationStore, [
-        { key: settings.flags.transparentWindows, value: true },
+        { key: settings.flags.transparentWindows, value: false, override: true },
       ]);
     },
   },
@@ -193,7 +193,7 @@ export const settingsStore = new Store({
 export const createSettingsWindow = () => {
   const transparentWindows = settingsStore.get<string, boolean>(
     settings.flags.transparentWindows,
-    true,
+    false,
   );
 
   settingsWindow = new BrowserWindow({
@@ -213,7 +213,6 @@ export const createSettingsWindow = () => {
     },
   });
 
-  // setMenu(null) only if frame: true, otherwise a native menu bar would be added
   if (!transparentWindows) {
     settingsWindow.setMenu(null);
   }
@@ -248,10 +247,9 @@ export const showSettingsWindow = (tab = "general") => {
   settingsWindow.webContents.send("refreshData");
   settingsWindow.show();
 
-  // focus/moveTop only for non-transparent mode — Wayland compositors do not focus framed windows automatically
   const transparentWindows = settingsStore.get<string, boolean>(
     settings.flags.transparentWindows,
-    true,
+    false,
   );
   if (!transparentWindows) {
     settingsWindow.focus();
