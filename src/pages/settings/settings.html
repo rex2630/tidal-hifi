@@ -548,6 +548,24 @@
                 <span class="switch__slider"></span>
               </label>
             </div>
+            <div class="group__option">
+              <div class="group__content">
+                <h4>Enable transparent settings window</h4>
+                <p>
+                  Makes the settings window transparent and frameless to match the app's visual style.
+                </p>
+                <p>
+                  <span class="group__warning">Warning:</span> On Linux with Wayland and Nvidia GPU,
+                  packaged versions (RPM, DEB) may cause the settings window to become completely
+                  invisible when this option is enabled. Disable it if the settings window doesn't
+                  appear. Requires a restart to take effect.
+                </p>
+              </div>
+              <label class="switch">
+                <input id="transparentWindows" type="checkbox" />
+                <span class="switch__slider"></span>
+              </label>
+            </div>
           </div>
         </section>
 
