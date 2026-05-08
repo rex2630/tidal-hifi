@@ -18,6 +18,7 @@ export class MprisService {
   private player: Player | null = null;
   private currentPosition = 0; // Track current position in seconds
   private isReconnecting = false;
+  private lastTrackMetadataKey = ""; // Used to skip redundant D-Bus metadata updates
   private static readonly TIDAL_RESOURCE_PREFIX = "https://resources.tidal.com/images/";
 
   constructor(private mainWindow: BrowserWindow) {}
@@ -216,14 +217,14 @@ export class MprisService {
     }
 
     try {
-      // Update current position if available
+      // Always update the in-memory position — this is served via getPosition() without
+      // touching D-Bus, so it carries no allocation cost.
       this.currentPosition = this.safeNumber(mediaInfo.currentInSeconds, 0);
 
       // Sanitize values before sending to D-Bus
       const safeTrackId = this.sanitizeTrackIdForDbus(mediaInfo.trackId);
       const safeDuration = this.safeNumber(mediaInfo.durationInSeconds, 0);
       const safeVolume = Math.max(0, Math.min(1, this.safeNumber(mediaInfo.volume, 1.0)));
-      const customMetadata = this.filterForDbusMetadata(ObjectToDotNotation(mediaInfo, "custom:"));
 
       // Guard against double-prefixed image URLs (Tidal bug with uploaded content)
       let artUrl = mediaInfo.image || "";
@@ -234,10 +235,33 @@ export class MprisService {
         }
       }
 
-      // Safely update metadata
-      this.player.metadata = {
-        ...this.player.metadata,
-        ...{
+      // Build a snapshot key from the static track fields.  We intentionally
+      // exclude time-varying fields (currentInSeconds, current, status, …) so
+      // that a D-Bus PropertiesChanged signal is only emitted when the actual
+      // track changes, not on every 500 ms polling tick.  Emitting that signal
+      // every 500 ms caused continuous allocation of D-Bus message objects in
+      // the dbus-next write buffer.
+      const trackMetadataKey = JSON.stringify([
+        mediaInfo.title,
+        mediaInfo.artists,
+        mediaInfo.album,
+        safeTrackId,
+        artUrl,
+        safeDuration,
+      ]);
+
+      if (trackMetadataKey !== this.lastTrackMetadataKey) {
+        this.lastTrackMetadataKey = trackMetadataKey;
+
+        // Compute custom metadata only when the track has actually changed to
+        // avoid creating a new flattened object on every poll cycle.
+        const customMetadata = this.filterForDbusMetadata(
+          ObjectToDotNotation(mediaInfo, "custom:"),
+        );
+
+        // Assign the full metadata object — this is what triggers the D-Bus
+        // PropertiesChanged signal, so we only do it when the track changes.
+        this.player.metadata = {
           "xesam:title": mediaInfo.title || "",
           "xesam:artist": [mediaInfo.artists || ""],
           "xesam:album": mediaInfo.album || "",
@@ -245,9 +269,9 @@ export class MprisService {
           "mpris:artUrl": artUrl,
           "mpris:length": convertSecondsToMicroseconds(safeDuration),
           "mpris:trackid": `/org/mpris/MediaPlayer2/track/${safeTrackId}`,
-        },
-        ...customMetadata,
-      };
+          ...customMetadata,
+        };
+      }
 
       this.player.playbackStatus = mediaInfo.status === MediaStatus.paused ? "Paused" : "Playing";
 
@@ -381,6 +405,7 @@ export class MprisService {
 
   destroy(): void {
     this.isReconnecting = false;
+    this.lastTrackMetadataKey = "";
 
     if (this.player) {
       try {

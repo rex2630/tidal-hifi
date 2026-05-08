@@ -219,60 +219,75 @@ function addFullScreenListeners() {
  * Some actions triggered outside of the site need info from the site.
  */
 function addIPCEventListeners() {
-  window.addEventListener("DOMContentLoaded", () => {
-    ipcRenderer.on("globalEvent", (_event, action, payload) => {
-      switch (action) {
-        case globalEvents.playPause:
-          tidalController.playPause();
-          break;
-        case globalEvents.play:
-          tidalController.play();
-          break;
-        case globalEvents.pause:
-          tidalController.pause();
-          break;
-        case globalEvents.next:
-          tidalController.next();
-          break;
-        case globalEvents.previous:
-          tidalController.previous();
-          break;
-        case globalEvents.toggleFavorite:
-          tidalController.toggleFavorite();
-          break;
-        case globalEvents.toggleShuffle:
-          tidalController.toggleShuffle();
-          break;
-        case globalEvents.toggleRepeat:
-          tidalController.repeat();
-          break;
-        case globalEvents.volume:
-          if (typeof payload.volume === "number" && Number.isFinite(payload.volume)) {
-            tidalController.setVolume(payload.volume);
-          }
-          break;
-        case globalEvents.seek:
-          if (isSeekEvent(payload)) {
-            if (payload.type === "absolute") {
-              tidalController.setCurrentTime(payload.seconds);
-            } else if (payload.type === "relative") {
-              const currentTime = tidalController.getCurrentTime();
-              const newTime = currentTime + payload.seconds;
-              tidalController.setCurrentTime(newTime);
-            }
-          }
-          break;
-        case globalEvents.setLoopState:
-          if (payload?.targetState) {
-            setLoopState(payload.targetState);
-          }
-          break;
-        default:
-          break;
+  // Register the handler directly (not inside DOMContentLoaded) to avoid
+  // accumulating duplicate listeners on every same-origin navigation.  With
+  // Electron's contextIsolation the preload context is preserved across
+  // same-origin navigations, so DOMContentLoaded fires again each time while
+  // prior ipcRenderer.on registrations remain alive — a classic listener leak.
+  const globalEventHandler = (
+    _event: Electron.IpcRendererEvent,
+    action: string,
+    payload: Record<string, unknown>,
+  ) => {
+    switch (action) {
+      case globalEvents.playPause:
+        tidalController.playPause();
+        break;
+      case globalEvents.play:
+        tidalController.play();
+        break;
+      case globalEvents.pause:
+        tidalController.pause();
+        break;
+      case globalEvents.next:
+        tidalController.next();
+        break;
+      case globalEvents.previous:
+        tidalController.previous();
+        break;
+      case globalEvents.toggleFavorite:
+        tidalController.toggleFavorite();
+        break;
+      case globalEvents.toggleShuffle:
+        tidalController.toggleShuffle();
+        break;
+      case globalEvents.toggleRepeat:
+        tidalController.repeat();
+        break;
+      case globalEvents.volume: {
+        const vol = payload?.volume;
+        if (typeof vol === "number" && Number.isFinite(vol)) {
+          tidalController.setVolume(vol);
+        }
+        break;
       }
-    });
-  });
+      case globalEvents.seek:
+        if (isSeekEvent(payload)) {
+          if (payload.type === "absolute") {
+            tidalController.setCurrentTime(payload.seconds);
+          } else if (payload.type === "relative") {
+            const currentTime = tidalController.getCurrentTime();
+            const newTime = currentTime + payload.seconds;
+            tidalController.setCurrentTime(newTime);
+          }
+        }
+        break;
+      case globalEvents.setLoopState: {
+        const targetState = payload?.targetState;
+        if (targetState === "off" || targetState === "single" || targetState === "all") {
+          setLoopState(targetState);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
+  ipcRenderer.on("globalEvent", globalEventHandler);
+
   window.addEventListener("beforeunload", () => {
+    ipcRenderer.removeListener("globalEvent", globalEventHandler);
     tidalController.destroy();
   });
 }
