@@ -32,6 +32,10 @@ export type ReduxStoreType = {
     };
     playbackContext: {
       actualDuration: number;
+      actualAudioQuality?: string;
+      bitDepth?: number | null;
+      sampleRate?: number | null;
+      codec?: string | null;
     };
     playbackState: string;
     volume: number;

@@ -1,3 +1,4 @@
+import type { AudioQuality } from "./audioQuality";
 import type { MediaPlayerInfo } from "./mediaPlayerInfo";
 import { MediaStatus } from "./mediaStatus";
 import { RepeatState } from "./repeatState";
@@ -21,6 +22,7 @@ export interface MediaInfo {
   trackId?: string;
   volume?: number;
   player?: MediaPlayerInfo;
+  audioQuality?: AudioQuality;
 }
 
 export const getEmptyMediaInfo = () => {

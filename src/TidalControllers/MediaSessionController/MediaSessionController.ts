@@ -86,6 +86,7 @@ export class MediaSessionController implements TidalController<MediaSessionContr
               shuffle: this.getCurrentShuffleState(),
               repeat: this.getCurrentRepeatState(),
             },
+            audioQuality: this.fallbackDomController.getAudioQuality(),
           };
 
           // Only update if something changed

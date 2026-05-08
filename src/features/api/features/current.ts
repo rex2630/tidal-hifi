@@ -55,6 +55,25 @@ export const addCurrentInfo = (expressApp: Router) => {
    *               type: boolean
    *             repeat:
    *               type: string
+   *         audioQuality:
+   *           type: object
+   *           description: Audio quality info as exposed by Tidal (whatever the active controller can read)
+   *           properties:
+   *             quality:
+   *               type: string
+   *               description: Tidal quality tier (e.g. LOW, HIGH, LOSSLESS, HI_RES_LOSSLESS)
+   *             badgeText:
+   *               type: string
+   *               description: Human-readable badge text from the Tidal UI (DOM controller only, e.g. "16-bit 44.1kHz")
+   *             bitDepth:
+   *               type: integer
+   *               description: Bit depth in bits (Redux controller only, lossless content)
+   *             sampleRate:
+   *               type: integer
+   *               description: Sample rate in Hz (Redux controller only, lossless content)
+   *             codec:
+   *               type: string
+   *               description: Codec name as reported by Tidal (Redux controller only, e.g. FLAC, MP4A)
    *         artist:
    *           type: string
    *       example:
@@ -76,6 +95,12 @@ export const addCurrentInfo = (expressApp: Router) => {
    *           status: "playing"
    *           shuffle: true
    *           repeat: "one"
+   *         audioQuality:
+   *           quality: "HI_RES_LOSSLESS"
+   *           badgeText: "24-bit 96kHz"
+   *           bitDepth: 24
+   *           sampleRate: 96000
+   *           codec: "FLAC"
    *         artist: "Sample Artist"
    */
 
@@ -114,6 +139,46 @@ export const addCurrentInfo = (expressApp: Router) => {
    *         description: Not found
    */
   expressApp.get("/current/image", getCurrentImage);
+
+  /**
+   * @swagger
+   * /current/audio-quality:
+   *   get:
+   *     summary: Get audio quality info for the current track
+   *     description: |
+   *       Returns whatever audio quality info the active controller can read from
+   *       Tidal: at minimum the quality tier from the on-screen badge; additionally
+   *       bit depth, sample rate and codec when the Redux controller is active.
+   *       Returns 404 when no quality information is currently available.
+   *     tags: [current]
+   *     responses:
+   *       200:
+   *         description: Audio quality info for the current track
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 quality:
+   *                   type: string
+   *                 badgeText:
+   *                   type: string
+   *                 bitDepth:
+   *                   type: integer
+   *                 sampleRate:
+   *                   type: integer
+   *                 codec:
+   *                   type: string
+   *       404:
+   *         description: No audio quality information available
+   */
+  expressApp.get("/current/audio-quality", (_req, res) => {
+    if (!mediaInfo.audioQuality) {
+      res.status(404).json({ error: "No audio quality information available" });
+      return;
+    }
+    res.json(mediaInfo.audioQuality);
+  });
 };
 
 export const getCurrentImage = (_req: Request, res: Response) => {

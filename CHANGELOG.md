@@ -23,6 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Updates
 
 - Windows artifacts (`.msi`) are now built and attached to GitHub releases.
+- API: the current track now exposes an `audioQuality` block (Tidal quality tier, plus bit depth / sample rate / codec when the Redux controller is active) on `GET /current`, and a dedicated `GET /current/audio-quality` endpoint. ([#899](https://github.com/Mastermindzh/tidal-hifi/issues/899))
+  - Example:
+
+      ```json
+      "audioQuality": {
+        "quality": "HI_RES_LOSSLESS",
+        "badgeText": "24-bit 96kHz",
+        "bitDepth": 24,
+        "sampleRate": 96000,
+        "codec": "FLAC"
+      },
+      ```
 
 ## [6.3.1 - Mavy]
 

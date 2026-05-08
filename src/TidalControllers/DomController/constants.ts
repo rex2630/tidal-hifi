@@ -25,6 +25,7 @@ const BASE_SELECTORS = {
   tracklist_row: '[data-test="tracklist-row"]',
   volume: '*[data-test="volume"]',
   favorite: '*[data-test="footer-favorite-button"]',
+  qualityBadge: '*[data-test^="quality-badge-"]',
   sidebarMusic: '*[data-test="sidebar-music"]',
   sidebarExplore: '*[data-test="sidebar-explore"]',
   sidebarFeed: '*[data-test="sidebar-feed"]',
