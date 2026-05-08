@@ -63,11 +63,7 @@ const updateActivity = () => {
   if (payloadKey === lastActivityKey) return;
   lastActivityKey = payloadKey;
 
-  try {
-    send()?.catch(() => {});
-  } catch (_error) {
-    // Silently ignore errors when Discord connection is already closed
-  }
+  send()?.catch(() => {});
 };
 
 const getActivity = (): SetActivity => {
