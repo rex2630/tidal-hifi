@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
       },
       ```
 
+- Auto-skip tracks by title keyword: a new "Skip tracks automatically" toggle lets you list keywords (e.g. `live`, `remix`) and any track whose title contains one (case-insensitive substring match) is skipped. Mirrors the existing "Skip artists automatically" feature, including REST endpoints under `/settings/skipped-tracks` (`GET`/`POST`/`POST .../delete`/`POST .../current`/`DELETE .../current`). ([#685](https://github.com/Mastermindzh/tidal-hifi/issues/685))
+
 ## [6.3.1 - Mavy]
 
 ### Fixed

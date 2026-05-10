@@ -6,93 +6,98 @@ function triggerInputEvent(element: HTMLElement) {
   element.dispatchEvent(event);
 }
 
-function createTag(artistName: string) {
-  const tag = document.createElement("div");
-  tag.className = "tags__tag";
-  tag.textContent = artistName;
-  tag.title = `Remove ${artistName}`;
-  tag.tabIndex = 0;
+/**
+ * Wires up a "skip list" UI: a textarea storing newline-separated values, an
+ * input + button to add new entries, and a tag container rendering each entry
+ * as a clickable pill that removes itself on click. Used by both the
+ * skip-artists and skip-tracks settings sections.
+ */
+function setupSkipList(opts: { inputId: string; textareaId: string; tagsContainerId: string }) {
+  const input = document.getElementById(opts.inputId) as HTMLInputElement | null;
+  const textarea = document.getElementById(opts.textareaId) as HTMLTextAreaElement | null;
+  const tagsContainer = document.getElementById(opts.tagsContainerId);
 
-  // Add click event to remove the tag
-  tag.addEventListener("click", () => {
-    const skippedArtistsTextarea = document.getElementById("skippedArtists") as HTMLTextAreaElement;
-    const artists = skippedArtistsTextarea.value
+  const readValues = (): string[] =>
+    (textarea?.value ?? "")
       .split("\n")
-      .map((artist) => artist.trim())
-      .filter((artist) => artist !== "");
-    const updatedArtists = artists.filter((artist) => artist !== artistName);
-    skippedArtistsTextarea.value =
-      updatedArtists.join("\n") + (updatedArtists.length > 0 ? "\n" : "");
+      .map((value) => value.trim())
+      .filter((value) => value !== "");
 
-    triggerInputEvent(skippedArtistsTextarea);
-    updateTags();
-  });
+  const writeValues = (values: string[]) => {
+    if (!textarea) return;
+    textarea.value = values.join("\n") + (values.length > 0 ? "\n" : "");
+    triggerInputEvent(textarea);
+  };
 
-  tag.addEventListener("keypress", (event: Event) => {
-    if ((event as KeyboardEvent).key === "Enter" || (event as KeyboardEvent).key === " ") {
+  const createTag = (value: string) => {
+    const tag = document.createElement("div");
+    tag.className = "tags__tag";
+    tag.textContent = value;
+    tag.title = `Remove ${value}`;
+    tag.tabIndex = 0;
+
+    tag.addEventListener("click", () => {
+      writeValues(readValues().filter((existing) => existing !== value));
+      render();
+    });
+
+    tag.addEventListener("keypress", (event: Event) => {
+      const key = (event as KeyboardEvent).key;
+      if (key === "Enter" || key === " ") {
+        event.preventDefault();
+        tag.click();
+      }
+    });
+
+    return tag;
+  };
+
+  const render = () => {
+    if (!tagsContainer || !textarea) return;
+    tagsContainer.innerHTML = "";
+    for (const value of readValues()) {
+      tagsContainer.appendChild(createTag(value));
+    }
+  };
+
+  const add = () => {
+    if (!input) return;
+    const value = input.value.trim();
+    if (value === "") return;
+    input.value = "";
+
+    const existing = readValues();
+    if (existing.includes(value)) return;
+
+    writeValues([...existing, value]);
+    render();
+  };
+
+  input?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
       event.preventDefault();
-      tag.click();
+      add();
     }
   });
+  textarea?.addEventListener("input", () => render());
+  setTimeout(render, 100);
 
-  return tag;
+  return { add };
 }
 
-function skipArtist() {
-  const artistInput = document.getElementById("add-artist") as HTMLInputElement;
-  const skippedArtistsTextarea = document.getElementById("skippedArtists") as HTMLTextAreaElement;
-  const artistName = artistInput.value.trim();
-  if (artistName === "") return;
+const artistsSkipList = setupSkipList({
+  inputId: "add-artist",
+  textareaId: "skippedArtists",
+  tagsContainerId: "artist-tags",
+});
 
-  // Clear input
-  artistInput.value = "";
+const tracksSkipList = setupSkipList({
+  inputId: "add-track",
+  textareaId: "skippedTracks",
+  tagsContainerId: "track-tags",
+});
 
-  // If the artist already exists, do nothing
-  const existingArtists = skippedArtistsTextarea.value
-    .split("\n")
-    .map((artist) => artist.trim())
-    .filter((artist) => artist !== "");
-  if (existingArtists.includes(artistName)) {
-    return;
-  }
-
-  // Update textarea
-  if (skippedArtistsTextarea.value && !skippedArtistsTextarea.value.endsWith("\n")) {
-    skippedArtistsTextarea.value += "\n";
-  }
-
-  skippedArtistsTextarea.value += `${artistName}\n`;
-
-  triggerInputEvent(skippedArtistsTextarea);
-  updateTags();
-}
-
-function updateTags() {
-  const artistTagsContainer = document.getElementById("artist-tags");
-  const skippedArtistsTextarea = document.getElementById("skippedArtists") as HTMLTextAreaElement;
-  if (!artistTagsContainer || !skippedArtistsTextarea) return;
-  const artists = skippedArtistsTextarea.value
-    .split("\n")
-    .map((artist) => artist.trim())
-    .filter((artist) => artist !== "");
-
-  // Clear existing tags
-  artistTagsContainer.innerHTML = "";
-
-  // Create and append tags
-  artists.forEach((artistName) => {
-    const tag = createTag(artistName);
-    artistTagsContainer.appendChild(tag);
-  });
-}
-
-function handleEnterKey(event: KeyboardEvent) {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    skipArtist();
-  }
-}
-
-document.getElementById("add-artist")?.addEventListener("keydown", handleEnterKey);
-document.getElementById("skippedArtists")?.addEventListener("input", () => updateTags());
-setTimeout(() => updateTags(), 100);
+// Exposed for the inline `onclick="skipArtist()"` / `onclick="skipTrack()"` handlers in settings.html.
+type typedWindow = { skipArtist: () => void; skipTrack: () => void };
+(window as unknown as typedWindow).skipArtist = () => artistsSkipList.add();
+(window as unknown as typedWindow).skipTrack = () => tracksSkipList.add();

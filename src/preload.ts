@@ -360,6 +360,8 @@ tidalController.onMediaInfoUpdate(async (newState) => {
   if (isNewSong) {
     // check whether one of the artists is in the "skip artist" array, if so, skip...
     skipArtistsIfFoundInSkippedArtistsList(currentMediaInfo.artistsArray ?? []);
+    // check whether the track title matches any of the "skip track" keywords, if so, skip...
+    skipTracksIfTitleMatchesSkippedTracksList(currentMediaInfo.title ?? "");
 
     // update the currently playing song
     currentSong = songDashArtistTitle;
@@ -405,6 +407,24 @@ tidalController.onMediaInfoUpdate(async (newState) => {
           tidalController.next();
         }
       }
+    }
+  }
+
+  /**
+   * Skip the current track if its title contains any of the configured
+   * keywords (case-insensitive substring match), e.g. "live" or "remix".
+   */
+  function skipTracksIfTitleMatchesSkippedTracksList(title: string) {
+    if (!title || !settingsStore.get(settings.skipTracks)) return;
+    const skippedTracks = settingsStore
+      .get<string, string[]>(settings.skippedTracks)
+      .map((keyword) => keyword.trim())
+      .filter((keyword) => keyword.length > 0);
+    if (skippedTracks.length === 0) return;
+    const lowerTitle = title.toLowerCase();
+    const match = skippedTracks.some((keyword) => lowerTitle.includes(keyword.toLowerCase()));
+    if (match) {
+      tidalController.next();
     }
   }
 });

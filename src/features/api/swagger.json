@@ -493,6 +493,94 @@
         }
       }
     },
+    "/settings/skipped-tracks": {
+      "get": {
+        "summary": "get a list of track-title keywords that TIDAL Hi-Fi will skip if track-skipping is enabled (case-insensitive substring match)",
+        "tags": [
+          "settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of skipped track keywords.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StringArray"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add new keywords to the list of skipped tracks",
+        "tags": [
+          "settings"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StringArray"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok"
+          }
+        }
+      }
+    },
+    "/settings/skipped-tracks/delete": {
+      "post": {
+        "summary": "Remove keywords from the list of skipped tracks",
+        "tags": [
+          "settings"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StringArray"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok"
+          }
+        }
+      }
+    },
+    "/settings/skipped-tracks/current": {
+      "post": {
+        "summary": "Add the current track title to the list of skipped tracks (will skip any track containing it)",
+        "tags": [
+          "settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Ok"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove the current track title from the list of skipped tracks",
+        "tags": [
+          "settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Ok"
+          }
+        }
+      }
+    },
     "/image": {
       "get": {
         "summary": "Get current image",

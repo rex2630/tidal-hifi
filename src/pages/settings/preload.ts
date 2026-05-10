@@ -69,6 +69,8 @@ let adBlock: HTMLInputElement,
   singleInstance: HTMLInputElement,
   skipArtists: HTMLInputElement,
   skippedArtists: HTMLInputElement,
+  skipTracks: HTMLInputElement,
+  skippedTracks: HTMLInputElement,
   startMinimized: HTMLInputElement,
   staticWindowTitle: HTMLInputElement,
   theme: HTMLSelectElement,
@@ -246,6 +248,8 @@ function refreshSettings() {
     singleInstance.checked = settingsStore.get(settings.singleInstance);
     skipArtists.checked = settingsStore.get(settings.skipArtists);
     skippedArtists.value = settingsStore.get<string, string[]>(settings.skippedArtists).join("\n");
+    skipTracks.checked = settingsStore.get(settings.skipTracks);
+    skippedTracks.value = settingsStore.get<string, string[]>(settings.skippedTracks).join("\n");
     startMinimized.checked = settingsStore.get(settings.startMinimized);
     staticWindowTitle.checked = settingsStore.get(settings.staticWindowTitle);
     theme.value = settingsStore.get(settings.theme);
@@ -413,6 +417,8 @@ window.addEventListener("DOMContentLoaded", () => {
   trayIconPath = get("trayIconPath");
   skipArtists = get("skipArtists");
   skippedArtists = get("skippedArtists");
+  skipTracks = get("skipTracks");
+  skippedTracks = get("skippedTracks");
   startMinimized = get("startMinimized");
   staticWindowTitle = get("staticWindowTitle");
   singleInstance = get("singleInstance");
@@ -454,6 +460,8 @@ window.addEventListener("DOMContentLoaded", () => {
   addInputListener(port, settings.apiSettings.port);
   addInputListener(skipArtists, settings.skipArtists);
   addTextAreaListener(skippedArtists, settings.skippedArtists);
+  addInputListener(skipTracks, settings.skipTracks);
+  addTextAreaListener(skippedTracks, settings.skippedTracks);
   addInputListener(startMinimized, settings.startMinimized);
   addInputListener(staticWindowTitle, settings.staticWindowTitle);
   addInputListener(singleInstance, settings.singleInstance);

@@ -87,6 +87,8 @@ export const settingsStore = new Store({
     singleInstance: true,
     skipArtists: false,
     skippedArtists: [""],
+    skipTracks: false,
+    skippedTracks: [""],
     startMinimized: false,
     staticWindowTitle: false,
     theme: "none",
@@ -259,4 +261,28 @@ export const removeSkippedArtists = (artists: string[]) => {
   const filteredArtists = previousStoreValue.filter((value) => ![...artists].includes(value));
 
   settingsStore.set(skippedArtists, filteredArtists);
+};
+
+/**
+ * Add track keywords to the list of skipped tracks. Each entry is matched
+ * against track titles using case-insensitive substring matching, so e.g.
+ * "live" will skip any track whose title contains "live" / "Live" / "LIVE".
+ * @param tracks list of track keywords to append
+ */
+export const addSkippedTracks = (tracks: string[]) => {
+  const { skippedTracks } = settings;
+  const previousStoreValue = settingsStore.get<string, string[]>(skippedTracks);
+  settingsStore.set(skippedTracks, Array.from(new Set([...previousStoreValue, ...tracks])));
+};
+
+/**
+ * Remove track keywords from the list of skipped tracks
+ * @param tracks list of track keywords to remove
+ */
+export const removeSkippedTracks = (tracks: string[]) => {
+  const { skippedTracks } = settings;
+  const previousStoreValue = settingsStore.get<string, string[]>(skippedTracks);
+  const filteredTracks = previousStoreValue.filter((value) => ![...tracks].includes(value));
+
+  settingsStore.set(skippedTracks, filteredTracks);
 };
