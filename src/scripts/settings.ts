@@ -185,9 +185,7 @@ export const settingsStore = new Store({
       }
     },
     "7.0.2": (migrationStore) => {
-      buildMigration("7.0.2", migrationStore, [
-        { key: settings.transparentWindow, value: false },
-      ]);
+      buildMigration("7.0.2", migrationStore, [{ key: settings.transparentWindow, value: false }]);
     },
   },
 });
