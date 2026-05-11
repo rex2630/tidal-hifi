@@ -76,6 +76,7 @@ let adBlock: HTMLInputElement,
   theme: HTMLSelectElement,
   trayIcon: HTMLInputElement,
   trayIconPath: HTMLInputElement,
+  transparentWindow: HTMLInputElement,
   updateFrequency: HTMLInputElement,
   enableListenBrainz: HTMLInputElement,
   ListenBrainzAPI: HTMLInputElement,
@@ -255,6 +256,7 @@ function refreshSettings() {
     theme.value = settingsStore.get(settings.theme);
     trayIcon.checked = settingsStore.get(settings.trayIcon);
     trayIconPath.value = settingsStore.get(settings.trayIconPath) || "";
+    transparentWindow.checked = settingsStore.get(settings.transparentWindow);
 
     // Validate tray icon path on load
     const validationElement = document.getElementById("trayIconPathValidation");
@@ -415,6 +417,7 @@ window.addEventListener("DOMContentLoaded", () => {
   theme = get<HTMLSelectElement>("themesList");
   trayIcon = get("trayIcon");
   trayIconPath = get("trayIconPath");
+  transparentWindow = get("transparentWindow");
   skipArtists = get("skipArtists");
   skippedArtists = get("skippedArtists");
   skipTracks = get("skipTracks");
@@ -468,6 +471,7 @@ window.addEventListener("DOMContentLoaded", () => {
   addSelectListener(theme, settings.theme);
   addInputListener(trayIcon, settings.trayIcon, switchesWithSettings.tray);
   addTrayIconPathListener(trayIconPath, settings.trayIconPath);
+  addInputListener(transparentWindow, settings.transparentWindow);
   addInputListener(updateFrequency, settings.updateFrequency);
   addInputListener(
     enableListenBrainz,
