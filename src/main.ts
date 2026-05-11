@@ -162,6 +162,10 @@ function configureUserAgent() {
 }
 
 function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
+  const useTransparentWindow =
+    process.platform === "linux" &&
+    !!settingsStore.get(settings.transparentWindow);
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     x: options.x,
@@ -169,9 +173,9 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     width: settingsStore?.get(settings.windowBounds.width),
     height: settingsStore?.get(settings.windowBounds.height),
     icon,
-    backgroundColor: options.backgroundColor,
+    backgroundColor: useTransparentWindow ? "#00000000" : options.backgroundColor,
     autoHideMenuBar: true,
-    transparent: process.platform !== "darwin",
+    transparent: useTransparentWindow,
     webPreferences: {
       ...windowPreferences,
       ...{
