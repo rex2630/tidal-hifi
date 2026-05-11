@@ -92,6 +92,7 @@ export const settingsStore = new Store({
     startMinimized: false,
     staticWindowTitle: false,
     theme: "none",
+    transparentWindow: false,
     trayIcon: true,
     trayIconPath: "",
     updateFrequency: 500,
@@ -182,6 +183,11 @@ export const settingsStore = new Store({
         migrationStore.set(settings.theme, `builtin:${currentTheme}`);
         log(`  - migrated theme "${currentTheme}" to "builtin:${currentTheme}"`);
       }
+    },
+    "7.0.2": (migrationStore) => {
+      buildMigration("7.0.2", migrationStore, [
+        { key: settings.transparentWindow, value: false },
+      ]);
     },
   },
 });
