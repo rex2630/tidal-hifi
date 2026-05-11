@@ -163,8 +163,7 @@ function configureUserAgent() {
 
 function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
   const useTransparentWindow =
-    process.platform === "linux" &&
-    !!settingsStore.get(settings.transparentWindow);
+    process.platform === "linux" && !!settingsStore.get(settings.transparentWindow);
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
