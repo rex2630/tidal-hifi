@@ -22,7 +22,7 @@ export class Logger {
    * @param content
    * @param object js(on) object that will be prettyPrinted
    */
-  public static log(content: string, object: object = {}) {
+  public static log(content: string, object: unknown = {}) {
     if (ipcRenderer) {
       ipcRenderer.send(globalEvents.log, { content, object });
     } else {
@@ -48,13 +48,13 @@ export class Logger {
    * @param content
    * @param object
    */
-  private static logToSTDOut(content: string, object = {}) {
+  private static logToSTDOut(content: string, object: unknown = {}) {
     try {
-      console.log(
-        "%s %s",
-        content,
-        Object.keys(object).length > 0 ? JSON.stringify(object, null, 2) : "",
-      );
+      const hasObjectWithKeys =
+        object !== null &&
+        object !== undefined &&
+        (typeof object !== "object" || Object.keys(object as object).length > 0);
+      console.log("%s %s", content, hasObjectWithKeys ? JSON.stringify(object, null, 2) : "");
     } catch {
       // ignore since console is the only target
     }

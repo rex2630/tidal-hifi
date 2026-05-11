@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.0]
+
+### Breaking changes
+
+- **MPRIS `PropertiesChanged` is no longer emitted on every poll tick.**
+  - Previously the full metadata object was reassigned on every ~500 ms polling cycle, which caused `org.freedesktop.DBus.Properties.PropertiesChanged` to fire continuously. The signal is now only emitted when the actual track changes (title / artists / album / trackId / artUrl / duration).
+  - `currentInSeconds` (and the derived `current` clock string) are explicitly excluded from the metadata-change key. The current playback position is still served live to MPRIS clients via `org.mpris.MediaPlayer2.Player.Position` (`getPosition()` returns the in-memory `currentPosition` in microseconds), but consumers that were listening for `PropertiesChanged` to detect position updates will need to poll `Position` directly (which is the spec-correct behaviour anyway).
+  - **Custom `custom:*` MPRIS tags no longer live-update between track changes.** Because the entire metadata object (including the flattened `custom:*` fields derived from `MediaInfo`) is only re-published when the track-change key changes, any custom field that varies *within* a single track (e.g. `custom:status`, `custom:current`, `custom:currentInSeconds`, `custom:player.shuffle`, …) will keep the value it had at the moment the track started. If you depend on one of these fields updating mid-track, read the canonical MPRIS property instead (`PlaybackStatus`, `Position`, `Shuffle`, `LoopStatus`, `Volume`) — those are still updated on every poll.
+
+### Fixes
+
+- **Memory leak in MPRIS service** (root cause of the ~2 GB/hr leak reported in the wild): metadata is no longer reassigned on every poll, eliminating the continuous allocation of D-Bus message objects in the `dbus-next` write buffer.
+- **Memory leak in theming**: `injectThemeCss` now removes previously injected CSS via `webContents.removeInsertedCSS` before re-injecting. Inserted CSS keys are tracked per `WebContents` in a `WeakMap` so they are released when the web contents go away. Previously every theme reload (and every navigation that re-injected CSS) accumulated style sheets indefinitely.
+- **Memory leak in Discord RPC**: presence updates are now deduplicated via a content-based key (everything except `startTimestamp` / `endTimestamp`). Identical activity payloads no longer round-trip to the Discord IPC socket on every poll. `unRPC` resets the dedupe key so a fresh connection re-publishes immediately.
+- **Settings window not opening on Wayland + Nvidia (RPM/DEB)**: removed the `--use-angle` flag from `executableArgs`, which caused a SEGV in the zygote process on systems with `libnvidia-egl-wayland2`. ([#907](https://github.com/Mastermindzh/tidal-hifi/pull/907) by [@rex2630](https://github.com/rex2630), fixes [#883](https://github.com/Mastermindzh/tidal-hifi/issues/883))
+
+### Updates
+
+- Windows artifacts (`.msi`) are now built and attached to GitHub releases.
+- API: the current track now exposes an `audioQuality` block (Tidal quality tier, plus bit depth / sample rate / codec when the Redux controller is active) on `GET /current`, and a dedicated `GET /current/audio-quality` endpoint. ([#899](https://github.com/Mastermindzh/tidal-hifi/issues/899))
+  - Example:
+
+      ```json
+      "audioQuality": {
+        "quality": "HI_RES_LOSSLESS",
+        "badgeText": "24-bit 96kHz",
+        "bitDepth": 24,
+        "sampleRate": 96000,
+        "codec": "FLAC"
+      },
+      ```
+
+- Auto-skip tracks by title keyword: a new "Skip tracks automatically" toggle lets you list keywords (e.g. `live`, `remix`) and any track whose title contains one (case-insensitive substring match) is skipped. Mirrors the existing "Skip artists automatically" feature, including REST endpoints under `/settings/skipped-tracks` (`GET`/`POST`/`POST .../delete`/`POST .../current`/`DELETE .../current`). ([#685](https://github.com/Mastermindzh/tidal-hifi/issues/685))
+
 ## [6.3.1 - Mavy]
 
 ### Fixed

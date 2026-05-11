@@ -69,6 +69,8 @@ let adBlock: HTMLInputElement,
   singleInstance: HTMLInputElement,
   skipArtists: HTMLInputElement,
   skippedArtists: HTMLInputElement,
+  skipTracks: HTMLInputElement,
+  skippedTracks: HTMLInputElement,
   startMinimized: HTMLInputElement,
   staticWindowTitle: HTMLInputElement,
   theme: HTMLSelectElement,
@@ -125,10 +127,11 @@ function getThemeFiles() {
 
 function handleFileUploads() {
   const fileMessage = document.getElementById("file-message");
+  if (!fileMessage) return;
   fileMessage.innerText = "or drag and drop files here";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  document.getElementById("theme-files").addEventListener("change", async (e: any) => {
+  document.getElementById("theme-files")?.addEventListener("change", async (e: any) => {
     if (!e.target.files || e.target.files.length === 0) {
       fileMessage.classList.add("hidden");
       return;
@@ -163,6 +166,7 @@ function setElementHidden(
   toggleOptions: { switch: string; classToHide: string },
 ) {
   const element = document.getElementById(toggleOptions.classToHide);
+  if (!element) return;
 
   checked ? element.classList.remove("hidden") : element.classList.add("hidden");
 }
@@ -244,6 +248,8 @@ function refreshSettings() {
     singleInstance.checked = settingsStore.get(settings.singleInstance);
     skipArtists.checked = settingsStore.get(settings.skipArtists);
     skippedArtists.value = settingsStore.get<string, string[]>(settings.skippedArtists).join("\n");
+    skipTracks.checked = settingsStore.get(settings.skipTracks);
+    skippedTracks.value = settingsStore.get<string, string[]>(settings.skippedTracks).join("\n");
     startMinimized.checked = settingsStore.get(settings.startMinimized);
     staticWindowTitle.checked = settingsStore.get(settings.staticWindowTitle);
     theme.value = settingsStore.get(settings.theme);
@@ -308,7 +314,7 @@ window.addEventListener("DOMContentLoaded", () => {
   getThemeFiles();
   handleFileUploads();
 
-  document.getElementById("close").addEventListener("click", hide);
+  document.getElementById("close")?.addEventListener("click", hide);
   document.getElementById("restartApp")?.addEventListener("click", () => {
     ipcRenderer.send(globalEvents.restartApp);
   });
@@ -317,7 +323,8 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.querySelectorAll(".external-link").forEach((elem) => {
     elem.addEventListener("click", (event) => {
-      openExternal((event.target as HTMLElement).getAttribute("data-url"));
+      const url = (event.target as HTMLElement).getAttribute("data-url");
+      if (url) openExternal(url);
     });
   });
 
@@ -380,7 +387,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   ipcRenderer.on("goToTab", (_, tab) => {
-    document.getElementById(tab).click();
+    document.getElementById(tab)?.click();
   });
 
   adBlock = get("adBlock");
@@ -410,6 +417,8 @@ window.addEventListener("DOMContentLoaded", () => {
   trayIconPath = get("trayIconPath");
   skipArtists = get("skipArtists");
   skippedArtists = get("skippedArtists");
+  skipTracks = get("skipTracks");
+  skippedTracks = get("skippedTracks");
   startMinimized = get("startMinimized");
   staticWindowTitle = get("staticWindowTitle");
   singleInstance = get("singleInstance");
@@ -451,6 +460,8 @@ window.addEventListener("DOMContentLoaded", () => {
   addInputListener(port, settings.apiSettings.port);
   addInputListener(skipArtists, settings.skipArtists);
   addTextAreaListener(skippedArtists, settings.skippedArtists);
+  addInputListener(skipTracks, settings.skipTracks);
+  addTextAreaListener(skippedTracks, settings.skippedTracks);
   addInputListener(startMinimized, settings.startMinimized);
   addInputListener(staticWindowTitle, settings.staticWindowTitle);
   addInputListener(singleInstance, settings.singleInstance);

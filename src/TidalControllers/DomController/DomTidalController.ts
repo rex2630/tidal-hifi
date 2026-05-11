@@ -1,6 +1,7 @@
 import { Logger } from "../../features/logger";
 import { getTrackURL } from "../../features/tidal/url";
 import { convertSecondsToClockFormat } from "../../features/time/parse";
+import type { AudioQuality } from "../../models/audioQuality";
 import type { MediaInfo } from "../../models/mediaInfo";
 import { MediaStatus } from "../../models/mediaStatus";
 import { RepeatState, type RepeatStateType } from "../../models/repeatState";
@@ -11,7 +12,7 @@ import type { DomControllerOptions } from "./DomControllerOptions";
 import { clickElement, getElement, getElementAttribute, getElementText } from "./domHelpers";
 
 export class DomTidalController implements TidalController<DomControllerOptions> {
-  private updateSubscriber: (state: Partial<MediaInfo>) => void;
+  private updateSubscriber!: (state: Partial<MediaInfo>) => void;
   private currentlyPlaying = MediaStatus.paused;
   private currentRepeatState: RepeatStateType = RepeatState.off;
   private currentShuffleState = false;
@@ -95,6 +96,7 @@ export class DomTidalController implements TidalController<DomControllerOptions>
           shuffle: shuffleState,
           repeat: repeatState,
         },
+        audioQuality: this.getAudioQuality(),
       };
 
       this.updateSubscriber(updatedInfo);
@@ -227,7 +229,7 @@ export class DomTidalController implements TidalController<DomControllerOptions>
       if (globalThis.location.href.includes("/album/")) {
         const albumName = globalThis.document.querySelector(UI_SELECTORS.album_header_title);
         if (albumName) {
-          return albumName.textContent;
+          return albumName.textContent ?? "";
         }
         //If listening to a playlist or a mix, get the album name from the list
       } else if (
@@ -239,7 +241,7 @@ export class DomTidalController implements TidalController<DomControllerOptions>
           const playingElement = window.document.querySelector(UI_SELECTORS.currentlyPlaying);
           const row = playingElement?.closest(UI_SELECTORS.mediaItem);
           if (row) {
-            return row.querySelector(UI_SELECTORS.album_name_cell).textContent;
+            return row.querySelector(UI_SELECTORS.album_name_cell)?.textContent ?? "";
           }
         }
       }
@@ -280,6 +282,24 @@ export class DomTidalController implements TidalController<DomControllerOptions>
   isFavorite() {
     return getElementAttribute("favorite", "aria-checked") === "true";
   }
+
+  /**
+   * Best-effort audio-quality info derived from the DOM quality badge.
+   * Tidal's web UI exposes an element like `data-test="quality-badge-LOSSLESS"`,
+   * which only carries the quality tier — bit depth, sample rate and codec
+   * are not available without the Redux store.
+   */
+  getAudioQuality(): AudioQuality | undefined {
+    const badge = getElement("qualityBadge");
+    if (!badge) return undefined;
+    const dataTest = badge.getAttribute("data-test") || "";
+    const match = dataTest.match(/^quality-badge-(.+)$/);
+    const badgeText = badge.textContent?.trim() || undefined;
+    const quality = match?.[1] || badgeText;
+    if (!quality && !badgeText) return undefined;
+    return { quality, badgeText };
+  }
+
   getSongIcon() {
     return this.getMedia();
   }

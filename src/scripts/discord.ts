@@ -10,7 +10,7 @@ import { settingsStore } from "./settings";
 
 const clientId = "833617820704440341";
 
-export let rpc: Client;
+export let rpc: Client | null;
 
 const ACTIVITY_LISTENING = 2;
 const MAX_RETRIES = 5;
@@ -29,17 +29,41 @@ const defaultPresence = {
   type: ACTIVITY_LISTENING,
 };
 
+/**
+ * Cache of the last payload pushed to Discord. Without this, the observer fires
+ * for every IPC event (including the 500 ms `updateInfo` poll) and we'd emit
+ * `setActivity` ~7,200 times/hour. Each call allocates a new payload and its
+ * unawaited Promise — wasted work and extra GC pressure that also bumps into
+ * Discord's rate limit (5 per 20 s). Dedupe by content excluding the jittery
+ * `startTimestamp`/`endTimestamp` (derived from `Date.now()`) so identical
+ * activity within the same track only sends once.
+ */
+let lastActivityKey = "";
+
 const updateActivity = () => {
   const showIdle = settingsStore.get<string, boolean>(settings.discord.showIdle) ?? true;
-  try {
-    if (mediaInfo.status === MediaStatus.paused && !showIdle) {
-      rpc.user?.clearActivity()?.catch(() => {});
-    } else {
-      rpc.user?.setActivity(getActivity())?.catch(() => {});
-    }
-  } catch (_error) {
-    // Silently ignore errors when Discord connection is already closed
+  const isPausedAndHidden = mediaInfo.status === MediaStatus.paused && !showIdle;
+
+  let payloadKey: string;
+  let send: () => Promise<unknown> | undefined;
+
+  if (isPausedAndHidden) {
+    payloadKey = "clear";
+    send = () => rpc?.user?.clearActivity();
+  } else {
+    const activity = getActivity();
+    payloadKey = JSON.stringify({
+      ...activity,
+      startTimestamp: undefined,
+      endTimestamp: undefined,
+    });
+    send = () => rpc?.user?.setActivity(activity);
   }
+
+  if (payloadKey === lastActivityKey) return;
+  lastActivityKey = payloadKey;
+
+  send()?.catch(() => {});
 };
 
 const getActivity = (): SetActivity => {
@@ -120,6 +144,7 @@ const getActivity = (): SetActivity => {
  * @param retryCount Max retry count
  */
 const connectWithRetry = async (retryCount = 0) => {
+  if (!rpc) return;
   try {
     await rpc.login();
     Logger.log("Connected to Discord");
@@ -166,5 +191,6 @@ export const unRPC = () => {
     }
     rpc.destroy();
     rpc = null;
+    lastActivityKey = "";
   }
 };

@@ -8,7 +8,7 @@ import { getDefaultHotkeyConfig } from "../features/hotkeys";
 import { Logger } from "../features/logger";
 import { injectThemeCss } from "../features/theming/theming";
 
-let settingsWindow: BrowserWindow;
+let settingsWindow: BrowserWindow | null;
 /**
  * Build a migration step for several settings.
  * All settings will be checked and set to the default if non-existent.
@@ -87,6 +87,8 @@ export const settingsStore = new Store({
     singleInstance: true,
     skipArtists: false,
     skippedArtists: [""],
+    skipTracks: false,
+    skippedTracks: [""],
     startMinimized: false,
     staticWindowTitle: false,
     theme: "none",
@@ -201,7 +203,7 @@ export const createSettingsWindow = () => {
     },
   });
 
-  settingsWindow.on("close", (event: Event) => {
+  settingsWindow.on("close", (event: Electron.Event) => {
     if (settingsWindow != null) {
       event.preventDefault();
       settingsWindow.hide();
@@ -211,7 +213,7 @@ export const createSettingsWindow = () => {
   settingsWindow.loadURL(`file://${__dirname}/../pages/settings/settings.html`);
 
   settingsWindow.webContents.on("did-finish-load", () => {
-    injectThemeCss(app, settingsWindow.webContents);
+    if (settingsWindow) injectThemeCss(app, settingsWindow.webContents);
   });
 
   settingsWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -225,11 +227,11 @@ export const showSettingsWindow = (tab = "general") => {
     log("Settings window is not initialized. Attempting to create it.");
     createSettingsWindow();
   }
-  settingsWindow.webContents.send("goToTab", tab);
+  settingsWindow?.webContents.send("goToTab", tab);
 
   // refresh data just before showing the window
-  settingsWindow.webContents.send("refreshData");
-  settingsWindow.show();
+  settingsWindow?.webContents.send("refreshData");
+  settingsWindow?.show();
 };
 export const hideSettingsWindow = () => {
   settingsWindow?.hide();
@@ -259,4 +261,28 @@ export const removeSkippedArtists = (artists: string[]) => {
   const filteredArtists = previousStoreValue.filter((value) => ![...artists].includes(value));
 
   settingsStore.set(skippedArtists, filteredArtists);
+};
+
+/**
+ * Add track keywords to the list of skipped tracks. Each entry is matched
+ * against track titles using case-insensitive substring matching, so e.g.
+ * "live" will skip any track whose title contains "live" / "Live" / "LIVE".
+ * @param tracks list of track keywords to append
+ */
+export const addSkippedTracks = (tracks: string[]) => {
+  const { skippedTracks } = settings;
+  const previousStoreValue = settingsStore.get<string, string[]>(skippedTracks);
+  settingsStore.set(skippedTracks, Array.from(new Set([...previousStoreValue, ...tracks])));
+};
+
+/**
+ * Remove track keywords from the list of skipped tracks
+ * @param tracks list of track keywords to remove
+ */
+export const removeSkippedTracks = (tracks: string[]) => {
+  const { skippedTracks } = settings;
+  const previousStoreValue = settingsStore.get<string, string[]>(skippedTracks);
+  const filteredTracks = previousStoreValue.filter((value) => ![...tracks].includes(value));
+
+  settingsStore.set(skippedTracks, filteredTracks);
 };

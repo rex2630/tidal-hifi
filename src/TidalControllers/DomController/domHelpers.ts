@@ -4,7 +4,7 @@ import { UI_SELECTORS } from "./constants";
  * Get an element from the dom
  * @param key of the object selector
  */
-export function getElement(key: keyof typeof UI_SELECTORS): HTMLElement {
+export function getElement(key: keyof typeof UI_SELECTORS): HTMLElement | null {
   return globalThis.document.querySelector(UI_SELECTORS[key]);
 }
 

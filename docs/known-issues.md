@@ -14,6 +14,7 @@ This document lists known bugs and issues with Tidal Hi-Fi along with workaround
   - [DRM not working on Windows (error S6007)](#drm-not-working-on-windows-error-s6007)
   - [Discord RPC not working with Flatpak and native Discord](#discord-rpc-not-working-with-flatpak-and-native-discord)
   - [Discord RPC not working between Flatpaks (TIDAL Hi-Fi + Discord/Vesktop)](#discord-rpc-not-working-between-flatpaks-tidal-hi-fi--discordvesktop)
+  - [Volume resets on restart](#volume-resets-on-restart)
   - [Audio quality](#audio-quality)
 
 <!-- tocstop -->
@@ -95,6 +96,16 @@ If both TIDAL Hi-Fi and Discord/Vesktop are running as Flatpaks, they cannot com
    ```
 
 This creates the necessary communication bridges between the sandboxed applications.
+
+## Volume resets on restart
+
+Some users notice their volume resets to a specific level (e.g. ~48%) when restarting the app. This is not a bug in Tidal Hi-Fi — it is caused by Tidal's built-in **volume normalization** feature, which adjusts playback volume to a consistent level across tracks.
+
+**Fix**: Disable volume normalization in Tidal's own settings:
+
+1. Click your profile picture (top right)
+2. Go to **Settings**
+3. Turn off **Normalize volume**
 
 ## Audio quality
 

@@ -15,7 +15,7 @@ export interface MediaSessionControllerOptions {
 }
 
 export class MediaSessionController implements TidalController<MediaSessionControllerOptions> {
-  private updateSubscriber: (state: Partial<MediaInfo>) => void;
+  private updateSubscriber!: (state: Partial<MediaInfo>) => void;
   private mediaSession: MediaSession | null = null;
   private refreshInterval: number = 500;
   private intervalId?: NodeJS.Timeout;
@@ -86,6 +86,7 @@ export class MediaSessionController implements TidalController<MediaSessionContr
               shuffle: this.getCurrentShuffleState(),
               repeat: this.getCurrentRepeatState(),
             },
+            audioQuality: this.fallbackDomController.getAudioQuality(),
           };
 
           // Only update if something changed

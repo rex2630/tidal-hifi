@@ -30,10 +30,7 @@ function parseThemeId(themeId: string): { source: "builtin" | "user" | "legacy";
  *   2. Bundled resources directory (process.resourcesPath/themes/)
  *   3. Local project themes/ directory (dev fallback)
  */
-export function resolveThemePath(
-  app: { getPath: (name: string) => string; isPackaged: boolean },
-  themeId: string,
-): string {
+export function resolveThemePath(app: Electron.App, themeId: string): string {
   const themesFolderName = "themes";
   const { source, name } = parseThemeId(themeId);
 
@@ -63,26 +60,48 @@ export function resolveThemePath(
 }
 
 /**
+ * Track keys returned by previous `insertCSS` calls per webContents so we can
+ * remove them before re-injecting. `did-finish-load` fires on every same-origin
+ * navigation (OAuth redirects, hard reloads, SPA full reloads), and without
+ * cleanup each fire would append another full stylesheet to the renderer.
+ */
+const insertedCssKeys = new WeakMap<Electron.WebContents, string[]>();
+
+/**
  * Inject theme and custom CSS into a BrowserWindow's webContents via Chromium-level insertCSS.
  * Attach this to the `did-finish-load` event of any window that should be themed.
+ *
+ * Previously-inserted stylesheets are removed first so repeated invocations
+ * (e.g. across navigations) replace rather than stack.
  */
-export function injectThemeCss(
-  app: { getPath: (name: string) => string; isPackaged: boolean },
-  webContents: Electron.WebContents,
-) {
+export async function injectThemeCss(app: Electron.App, webContents: Electron.WebContents) {
+  // Remove any previously-injected CSS so we don't accumulate stylesheets.
+  const previousKeys = insertedCssKeys.get(webContents) ?? [];
+  for (const key of previousKeys) {
+    try {
+      await webContents.removeInsertedCSS(key);
+    } catch {
+      // Renderer may have already discarded the stylesheet (e.g. after navigation); ignore.
+    }
+  }
+
+  const newKeys: string[] = [];
+
   const themeId = settingsStore.get<string, string>(settings.theme);
   if (themeId !== "none") {
     const themeFile = resolveThemePath(app, themeId);
     Logger.log(`Loading theme "${themeId}" from: ${themeFile}`);
     try {
       const css = fs.readFileSync(themeFile, "utf-8");
-      webContents.insertCSS(css);
+      newKeys.push(await webContents.insertCSS(css));
     } catch (error) {
       Logger.log("An error occurred reading the theme file.", error);
     }
   }
   const customCSS = settingsStore.get<string, string[]>(settings.customCSS);
   if (customCSS?.length) {
-    webContents.insertCSS(customCSS.join("\n"));
+    newKeys.push(await webContents.insertCSS(customCSS.join("\n")));
   }
+
+  insertedCssKeys.set(webContents, newKeys);
 }

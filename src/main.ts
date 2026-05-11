@@ -33,7 +33,7 @@ import {
 import { addTray, refreshTray } from "./scripts/tray";
 
 let mainInhibitorId = -1;
-let mprisService: MprisService;
+let mprisService: MprisService | null;
 
 let mainWindow: BrowserWindow;
 const icon = path.join(__dirname, "../assets/icon.png");
@@ -212,7 +212,7 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     isQuitting = true;
   });
 
-  mainWindow.on("close", (event: CloseEvent) => {
+  mainWindow.on("close", (event: Electron.Event) => {
     if (!isQuitting && settingsStore.get(settings.minimizeOnClose)) {
       event.preventDefault();
       mainWindow.hide();

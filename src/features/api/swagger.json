@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "TIDAL Hi-Fi API",
-    "version": "6.3.1",
+    "version": "7.0.0",
     "description": "",
     "license": {
       "name": "MIT",
@@ -58,6 +58,47 @@
           },
           "404": {
             "description": "Not found"
+          }
+        }
+      }
+    },
+    "/current/audio-quality": {
+      "get": {
+        "summary": "Get audio quality info for the current track",
+        "description": "Returns whatever audio quality info the active controller can read from\nTidal: at minimum the quality tier from the on-screen badge; additionally\nbit depth, sample rate and codec when the Redux controller is active.\nReturns 404 when no quality information is currently available.\n",
+        "tags": [
+          "current"
+        ],
+        "responses": {
+          "200": {
+            "description": "Audio quality info for the current track",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "quality": {
+                      "type": "string"
+                    },
+                    "badgeText": {
+                      "type": "string"
+                    },
+                    "bitDepth": {
+                      "type": "integer"
+                    },
+                    "sampleRate": {
+                      "type": "integer"
+                    },
+                    "codec": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No audio quality information available"
           }
         }
       }
@@ -452,6 +493,94 @@
         }
       }
     },
+    "/settings/skipped-tracks": {
+      "get": {
+        "summary": "get a list of track-title keywords that TIDAL Hi-Fi will skip if track-skipping is enabled (case-insensitive substring match)",
+        "tags": [
+          "settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of skipped track keywords.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StringArray"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add new keywords to the list of skipped tracks",
+        "tags": [
+          "settings"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StringArray"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok"
+          }
+        }
+      }
+    },
+    "/settings/skipped-tracks/delete": {
+      "post": {
+        "summary": "Remove keywords from the list of skipped tracks",
+        "tags": [
+          "settings"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StringArray"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok"
+          }
+        }
+      }
+    },
+    "/settings/skipped-tracks/current": {
+      "post": {
+        "summary": "Add the current track title to the list of skipped tracks (will skip any track containing it)",
+        "tags": [
+          "settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Ok"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove the current track title from the list of skipped tracks",
+        "tags": [
+          "settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Ok"
+          }
+        }
+      }
+    },
     "/image": {
       "get": {
         "summary": "Get current image",
@@ -669,6 +798,32 @@
               }
             }
           },
+          "audioQuality": {
+            "type": "object",
+            "description": "Audio quality info as exposed by Tidal (whatever the active controller can read)",
+            "properties": {
+              "quality": {
+                "type": "string",
+                "description": "Tidal quality tier (e.g. LOW, HIGH, LOSSLESS, HI_RES_LOSSLESS)"
+              },
+              "badgeText": {
+                "type": "string",
+                "description": "Human-readable badge text from the Tidal UI (DOM controller only, e.g. \"16-bit 44.1kHz\")"
+              },
+              "bitDepth": {
+                "type": "integer",
+                "description": "Bit depth in bits (Redux controller only, lossless content)"
+              },
+              "sampleRate": {
+                "type": "integer",
+                "description": "Sample rate in Hz (Redux controller only, lossless content)"
+              },
+              "codec": {
+                "type": "string",
+                "description": "Codec name as reported by Tidal (Redux controller only, e.g. FLAC, MP4A)"
+              }
+            }
+          },
           "artist": {
             "type": "string"
           }
@@ -692,6 +847,13 @@
             "status": "playing",
             "shuffle": true,
             "repeat": "one"
+          },
+          "audioQuality": {
+            "quality": "HI_RES_LOSSLESS",
+            "badgeText": "24-bit 96kHz",
+            "bitDepth": 24,
+            "sampleRate": 96000,
+            "codec": "FLAC"
           },
           "artist": "Sample Artist"
         }

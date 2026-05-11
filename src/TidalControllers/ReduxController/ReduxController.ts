@@ -1,6 +1,7 @@
 import { Logger } from "../../features/logger";
 import { getCoverURL } from "../../features/tidal/url";
 import { convertSecondsToClockFormat } from "../../features/time/parse";
+import type { AudioQuality } from "../../models/audioQuality";
 import type { MediaInfo } from "../../models/mediaInfo";
 import { MediaStatus } from "../../models/mediaStatus";
 import { RepeatState } from "../../models/repeatState";
@@ -30,12 +31,12 @@ function scanAllElementsForStore() {
 }
 
 export class ReduxController implements TidalController<ReduxControllerOptions> {
-  private updateSubscriber: (state: Partial<MediaInfo>) => void;
+  private updateSubscriber!: (state: Partial<MediaInfo>) => void;
   private pollingIntervalId?: ReturnType<typeof setInterval>;
   private reduxStore: {
     dispatch: (action: { type: string; payload?: object | number }) => void;
     getState: () => ReduxStoreType;
-  } = null;
+  } | null = null;
 
   /**
    * Get a player element
@@ -60,13 +61,13 @@ export class ReduxController implements TidalController<ReduxControllerOptions> 
   }
 
   private dispatchAction(action: string, payload?: object | number): void {
-    if (this.isStoreAvailable()) {
+    if (this.isStoreAvailable() && this.reduxStore) {
       this.reduxStore.dispatch({ type: action, payload: payload });
     }
   }
 
   private useSelector<T>(selector: (state: ReduxStoreType) => T, fallback: T): T {
-    if (this.isStoreAvailable()) {
+    if (this.isStoreAvailable() && this.reduxStore) {
       try {
         const value = selector(this.reduxStore.getState());
         return value === undefined ? fallback : value;
@@ -108,6 +109,7 @@ export class ReduxController implements TidalController<ReduxControllerOptions> 
         playingFrom: this.getPlayingFrom(),
         status: this.getCurrentlyPlayingStatus(),
         url: this.getTrackUrl(),
+        audioQuality: this.getAudioQuality(),
       };
       this.updateSubscriber(updatedInfo);
     }, constrainedInterval);
@@ -189,6 +191,23 @@ export class ReduxController implements TidalController<ReduxControllerOptions> 
       0,
     );
     return typeof duration === "number" && Number.isFinite(duration) ? duration : 0;
+  }
+
+  getAudioQuality(): AudioQuality | undefined {
+    const ctx = this.useSelector((state) => state.playbackControls.playbackContext, undefined);
+    if (!ctx) return undefined;
+    const quality = typeof ctx.actualAudioQuality === "string" ? ctx.actualAudioQuality : undefined;
+    const bitDepth =
+      typeof ctx.bitDepth === "number" && Number.isFinite(ctx.bitDepth) ? ctx.bitDepth : undefined;
+    const sampleRate =
+      typeof ctx.sampleRate === "number" && Number.isFinite(ctx.sampleRate)
+        ? ctx.sampleRate
+        : undefined;
+    const codec = typeof ctx.codec === "string" ? ctx.codec : undefined;
+    if (!quality && bitDepth === undefined && sampleRate === undefined && !codec) {
+      return undefined;
+    }
+    return { quality, bitDepth, sampleRate, codec };
   }
 
   getCurrentlyPlayingStatus() {

@@ -6,7 +6,9 @@ import { settings } from "../../../../constants/settings";
 import { mediaInfo } from "../../../../scripts/mediaInfo";
 import {
   addSkippedArtists,
+  addSkippedTracks,
   removeSkippedArtists,
+  removeSkippedTracks,
   settingsStore,
 } from "../../../../scripts/settings";
 
@@ -117,6 +119,99 @@ export const addSettingsAPI = (expressApp: Router, mainWindow: BrowserWindow) =>
    */
   expressApp.delete("/settings/skipped-artists/current", (_req, res) => {
     removeSkippedArtists([mediaInfo.artists]);
+    res.sendStatus(200);
+  });
+
+  /**
+   * @swagger
+   * /settings/skipped-tracks:
+   *   get:
+   *     summary: get a list of track-title keywords that TIDAL Hi-Fi will skip if track-skipping is enabled (case-insensitive substring match)
+   *     tags: [settings]
+   *     responses:
+   *       200:
+   *         description: The list of skipped track keywords.
+   *         content:
+   *           application/json:
+   *             schema:
+   *              $ref: '#/components/schemas/StringArray'
+   */
+  expressApp.get("/settings/skipped-tracks", (_req, res) => {
+    res.json(settingsStore.get<string, string[]>(settings.skippedTracks));
+  });
+
+  /**
+   * @swagger
+   * /settings/skipped-tracks:
+   *   post:
+   *     summary: Add new keywords to the list of skipped tracks
+   *     tags: [settings]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/StringArray'
+   *     responses:
+   *       200:
+   *         description: Ok
+   */
+  expressApp.post("/settings/skipped-tracks", (req: Request<object, object, string[]>, res) => {
+    addSkippedTracks(req.body);
+    res.sendStatus(200);
+  });
+
+  /**
+   * @swagger
+   * /settings/skipped-tracks/delete:
+   *   post:
+   *     summary: Remove keywords from the list of skipped tracks
+   *     tags: [settings]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/StringArray'
+   *     responses:
+   *       200:
+   *         description: Ok
+   */
+  expressApp.post(
+    "/settings/skipped-tracks/delete",
+    (req: Request<object, object, string[]>, res) => {
+      removeSkippedTracks(req.body);
+      res.sendStatus(200);
+    },
+  );
+
+  /**
+   * @swagger
+   * /settings/skipped-tracks/current:
+   *   post:
+   *     summary: Add the current track title to the list of skipped tracks (will skip any track containing it)
+   *     tags: [settings]
+   *     responses:
+   *       200:
+   *        description: Ok
+   */
+  expressApp.post("/settings/skipped-tracks/current", (_req, res) => {
+    addSkippedTracks([mediaInfo.title]);
+    mainWindow.webContents.send("globalEvent", globalEvents.next);
+    res.sendStatus(200);
+  });
+  /**
+   * @swagger
+   * /settings/skipped-tracks/current:
+   *   delete:
+   *     summary: Remove the current track title from the list of skipped tracks
+   *     tags: [settings]
+   *     responses:
+   *       200:
+   *        description: Ok
+   */
+  expressApp.delete("/settings/skipped-tracks/current", (_req, res) => {
+    removeSkippedTracks([mediaInfo.title]);
     res.sendStatus(200);
   });
 };

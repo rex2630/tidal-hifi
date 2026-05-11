@@ -84,6 +84,28 @@
               <textarea id="skippedArtists" class="hidden" cols="40" rows="5" spellcheck="false"
                 style="width: 100%"></textarea>
             </div>
+            <div class="group__option group__option--withContent">
+              <div>
+                <div class="group__content">
+                  <h4>Skip tracks automatically</h4>
+                  <p>Tracks whose title contains one of these keywords (case-insensitive) will be skipped automatically.
+                    Useful for filtering out e.g. "live" or "remix" versions.</p>
+                </div>
+                <label class="switch">
+                  <input id="skipTracks" type="checkbox" />
+                  <span class="switch__slider"></span>
+                </label>
+              </div>
+              <div class="tags">
+                <div id="track-tags" class="tags__items"></div>
+                <div class="tags__input-group">
+                  <input class="text-input" name="add-track" id="add-track" placeholder="Enter title keyword" />
+                  <button type="button" class="button" onclick="skipTrack()">Skip track keyword</button>
+                </div>
+              </div>
+              <textarea id="skippedTracks" class="hidden" cols="40" rows="5" spellcheck="false"
+                style="width: 100%"></textarea>
+            </div>
             <div class="group__option">
               <div class="group__content">
                 <h4>Block ads</h4>

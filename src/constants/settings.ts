@@ -63,6 +63,8 @@ export const settings = {
   singleInstance: "singleInstance",
   skipArtists: "skipArtists",
   skippedArtists: "skippedArtists",
+  skipTracks: "skipTracks",
+  skippedTracks: "skippedTracks",
   startMinimized: "startMinimized",
   staticWindowTitle: "staticWindowTitle",
   theme: "theme",

@@ -187,7 +187,7 @@ function handleLogout() {
   const logoutOptions = ["Cancel", "Yes, please", "No, thanks"];
 
   dialog
-    .showMessageBox(null, {
+    .showMessageBox({
       type: "question",
       title: "Logging out",
       message: "Are you sure you want to log out?",
@@ -198,7 +198,7 @@ function handleLogout() {
       if (logoutOptions.indexOf("Yes, please") === result.response) {
         for (let i = 0; i < window.localStorage.length; i++) {
           const key = window.localStorage.key(i);
-          if (key.startsWith("_TIDAL_activeSession")) {
+          if (key?.startsWith("_TIDAL_activeSession")) {
             window.localStorage.removeItem(key);
             break;
           }
@@ -219,60 +219,75 @@ function addFullScreenListeners() {
  * Some actions triggered outside of the site need info from the site.
  */
 function addIPCEventListeners() {
-  window.addEventListener("DOMContentLoaded", () => {
-    ipcRenderer.on("globalEvent", (_event, action, payload) => {
-      switch (action) {
-        case globalEvents.playPause:
-          tidalController.playPause();
-          break;
-        case globalEvents.play:
-          tidalController.play();
-          break;
-        case globalEvents.pause:
-          tidalController.pause();
-          break;
-        case globalEvents.next:
-          tidalController.next();
-          break;
-        case globalEvents.previous:
-          tidalController.previous();
-          break;
-        case globalEvents.toggleFavorite:
-          tidalController.toggleFavorite();
-          break;
-        case globalEvents.toggleShuffle:
-          tidalController.toggleShuffle();
-          break;
-        case globalEvents.toggleRepeat:
-          tidalController.repeat();
-          break;
-        case globalEvents.volume:
-          if (typeof payload.volume === "number" && Number.isFinite(payload.volume)) {
-            tidalController.setVolume(payload.volume);
-          }
-          break;
-        case globalEvents.seek:
-          if (isSeekEvent(payload)) {
-            if (payload.type === "absolute") {
-              tidalController.setCurrentTime(payload.seconds);
-            } else if (payload.type === "relative") {
-              const currentTime = tidalController.getCurrentTime();
-              const newTime = currentTime + payload.seconds;
-              tidalController.setCurrentTime(newTime);
-            }
-          }
-          break;
-        case globalEvents.setLoopState:
-          if (payload?.targetState) {
-            setLoopState(payload.targetState);
-          }
-          break;
-        default:
-          break;
+  // Register the handler directly (not inside DOMContentLoaded) to avoid
+  // accumulating duplicate listeners on every same-origin navigation.  With
+  // Electron's contextIsolation the preload context is preserved across
+  // same-origin navigations, so DOMContentLoaded fires again each time while
+  // prior ipcRenderer.on registrations remain alive — a classic listener leak.
+  const globalEventHandler = (
+    _event: Electron.IpcRendererEvent,
+    action: string,
+    payload: Record<string, unknown>,
+  ) => {
+    switch (action) {
+      case globalEvents.playPause:
+        tidalController.playPause();
+        break;
+      case globalEvents.play:
+        tidalController.play();
+        break;
+      case globalEvents.pause:
+        tidalController.pause();
+        break;
+      case globalEvents.next:
+        tidalController.next();
+        break;
+      case globalEvents.previous:
+        tidalController.previous();
+        break;
+      case globalEvents.toggleFavorite:
+        tidalController.toggleFavorite();
+        break;
+      case globalEvents.toggleShuffle:
+        tidalController.toggleShuffle();
+        break;
+      case globalEvents.toggleRepeat:
+        tidalController.repeat();
+        break;
+      case globalEvents.volume: {
+        const vol = payload?.volume;
+        if (typeof vol === "number" && Number.isFinite(vol)) {
+          tidalController.setVolume(vol);
+        }
+        break;
       }
-    });
-  });
+      case globalEvents.seek:
+        if (isSeekEvent(payload)) {
+          if (payload.type === "absolute") {
+            tidalController.setCurrentTime(payload.seconds);
+          } else if (payload.type === "relative") {
+            const currentTime = tidalController.getCurrentTime();
+            const newTime = currentTime + payload.seconds;
+            tidalController.setCurrentTime(newTime);
+          }
+        }
+        break;
+      case globalEvents.setLoopState: {
+        const targetState = payload?.targetState;
+        if (targetState === "off" || targetState === "single" || targetState === "all") {
+          setLoopState(targetState);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
+  ipcRenderer.on("globalEvent", globalEventHandler);
+
   window.addEventListener("beforeunload", () => {
+    ipcRenderer.removeListener("globalEvent", globalEventHandler);
     tidalController.destroy();
   });
 }
@@ -345,6 +360,8 @@ tidalController.onMediaInfoUpdate(async (newState) => {
   if (isNewSong) {
     // check whether one of the artists is in the "skip artist" array, if so, skip...
     skipArtistsIfFoundInSkippedArtistsList(currentMediaInfo.artistsArray ?? []);
+    // check whether the track title matches any of the "skip track" keywords, if so, skip...
+    skipTracksIfTitleMatchesSkippedTracksList(currentMediaInfo.title ?? "");
 
     // update the currently playing song
     currentSong = songDashArtistTitle;
@@ -390,6 +407,24 @@ tidalController.onMediaInfoUpdate(async (newState) => {
           tidalController.next();
         }
       }
+    }
+  }
+
+  /**
+   * Skip the current track if its title contains any of the configured
+   * keywords (case-insensitive substring match), e.g. "live" or "remix".
+   */
+  function skipTracksIfTitleMatchesSkippedTracksList(title: string) {
+    if (!title || !settingsStore.get(settings.skipTracks)) return;
+    const skippedTracks = settingsStore
+      .get<string, string[]>(settings.skippedTracks)
+      .map((keyword) => keyword.trim())
+      .filter((keyword) => keyword.length > 0);
+    if (skippedTracks.length === 0) return;
+    const lowerTitle = title.toLowerCase();
+    const match = skippedTracks.some((keyword) => lowerTitle.includes(keyword.toLowerCase()));
+    if (match) {
+      tidalController.next();
     }
   }
 });

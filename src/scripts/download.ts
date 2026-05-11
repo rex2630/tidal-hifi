@@ -18,11 +18,8 @@ export const downloadFile = (fileUrl: string, targetPath: string): Promise<strin
       const client = url.startsWith("https") ? https : http;
       client
         .get(url, (response) => {
-          if (
-            response.statusCode >= 300 &&
-            response.statusCode < 400 &&
-            response.headers.location
-          ) {
+          const status = response.statusCode ?? 0;
+          if (status >= 300 && status < 400 && response.headers.location) {
             response.resume();
             if (redirectCount >= MAX_REDIRECTS) {
               reject(new Error(`Too many redirects for ${fileUrl}`));

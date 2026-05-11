@@ -8,13 +8,17 @@
     "sourceMap": true,
     "allowJs": true,
     "outDir": "ts-dist",
+    "rootDir": "src",
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "baseUrl": ".",
-    "paths": {
-      "*": ["node_modules/*"]
-    }
+    "skipLibCheck": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": {
+      "rootDir": ".",
+      "types": ["node"]
+    }
+  }
 }
