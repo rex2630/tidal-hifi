@@ -9,49 +9,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_on_linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: update apt
-        run: sudo apt-get update
-      - name: Install libarchive-tools
-        run: sudo apt-get install -y libarchive-tools
-      - uses: actions/checkout@master
-      - uses: actions/setup-node@master
-        with:
-          node-version: 24.12.0
-      - run: npm install
-      - run: npm run build
-      - name: Build unpacked and zip it
-        run: |
-          npm run build-unpacked
-          cd dist/linux-unpacked
-          zip -r ../tidal-hifi-unpacked-linux.zip .
-          cd ../..
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-builds
-          path: dist/
-
-  build_on_mac:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/setup-node@master
-        with:
-          node-version: 24.12.0
-      - run: npm install
-      - run: npm run build-mac
-      - name: Zip the .app bundle
-        run: |
-          cd dist/mac-arm64
-          zip -r ../tidal-hifi-mac-arm64-app.zip tidal-hifi.app
-          cd ../..
-      - uses: actions/upload-artifact@v4
-        with:
-          name: mac-builds
-          path: dist/
-
   build_on_windows:
     runs-on: windows-latest
     steps:
@@ -66,39 +23,10 @@ jobs:
           name: windows-builds
           path: dist/*.msi
 
-  build_and_publish_snap:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
-    steps:
-      - name: update apt
-        run: sudo apt-get update
-      - name: Install libarchive-tools
-        run: sudo apt-get install -y libarchive-tools
-      - uses: actions/checkout@master
-      - uses: actions/setup-node@master
-        with:
-          node-version: 24.12.0
-      - run: npm install
-      - run: npm run build-snap
-      - name: Find snap file
-        id: find_snap
-        run: echo "snap_file=$(find dist -name '*.snap' -type f)" >> $GITHUB_OUTPUT
-      - name: Publish to Snap Store
-        uses: canonical/action-publish@v1
-        env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
-        with:
-          snap: ${{ steps.find_snap.outputs.snap_file }}
-          release: stable
-      - uses: actions/upload-artifact@v4
-        with:
-          name: snap-builds
-          path: dist/*.snap
-
   create_release:
     needs:
-      [build_on_linux, build_on_mac, build_on_windows]
-    if: always() && !cancelled() && needs.build_on_linux.result == 'success' && needs.build_on_mac.result == 'success' && needs.build_on_windows.result == 'success'
+      [build_on_windows]
+    if: needs.build_on_windows.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -121,15 +49,5 @@ jobs:
           name: ${{ steps.version.outputs.version }}
           generate_release_notes: true
           files: |
-            artifacts/linux-builds/*.deb
-            artifacts/linux-builds/*.rpm
-            artifacts/linux-builds/*.pacman
-            artifacts/linux-builds/*.tar.gz
-            artifacts/linux-builds/*.zip
-            artifacts/linux-builds/*.AppImage
-            artifacts/linux-builds/*.freebsd
-            artifacts/mac-builds/*.dmg
-            artifacts/mac-builds/*.zip
             artifacts/windows-builds/*.msi
             artifacts/windows-builds/*.exe
-            artifacts/snap-builds/*.snap
