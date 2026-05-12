@@ -1,7 +1,8 @@
 import { app, BrowserWindow, Menu } from "electron";
 
+import { settings } from "../constants/settings";
 import name from "./../constants/values";
-import { showSettingsWindow } from "./settings";
+import { settingsStore, showSettingsWindow } from "./settings";
 
 const isMac = process.platform === "darwin";
 
@@ -16,8 +17,11 @@ const settingsMenuEntry = {
 const tidalMagazineEntry = {
   label: "Magazine",
   click() {
+    const useTransparentWindow =
+      process.platform === "linux" && !!settingsStore.get(settings.transparentWindow);
+
     const magazineWindow = new BrowserWindow({
-      transparent: true,
+      transparent: useTransparentWindow,
       autoHideMenuBar: true,
       webPreferences: {
         sandbox: false,
@@ -25,6 +29,7 @@ const tidalMagazineEntry = {
         devTools: true, // I like tinkering, others might too
       },
     });
+
     magazineWindow.loadURL("https://tidal.com/magazine/");
     magazineWindow.show();
   },
