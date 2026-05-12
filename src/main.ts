@@ -45,6 +45,9 @@ const windowPreferences = {
   contextIsolation: true, // Enable context isolation for Security
 };
 
+const defaultWindowsUserAgent =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
 // Initialize Logger early so we can use it everywhere
 Logger.watch(ipcMain);
 
@@ -158,6 +161,8 @@ function configureUserAgent() {
     customUserAgent.trim() !== ""
   ) {
     mainWindow.webContents.setUserAgent(customUserAgent);
+  } else if (process.platform === "win32") {
+    mainWindow.webContents.setUserAgent(defaultWindowsUserAgent);
   }
 }
 

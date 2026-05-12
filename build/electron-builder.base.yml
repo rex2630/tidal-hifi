@@ -1,7 +1,7 @@
 appId: com.rickvanlieshout.tidal-hifi
-electronVersion: 41.5.0
+electronVersion: 42.0.0
 electronDownload:
-  version: v41.5.0+wvcus
+  version: v42.0.0+wvcus
   mirror: https://github.com/castlabs/electron-releases/releases/download/v
 snap:
   base: "core22"
