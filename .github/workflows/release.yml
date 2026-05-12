@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - master
+      - windows-test
   workflow_dispatch:
 
 jobs:
@@ -96,7 +97,8 @@ jobs:
 
   create_release:
     needs:
-      [build_on_linux, build_on_mac, build_on_windows, build_and_publish_snap]
+      [build_on_linux, build_on_mac, build_on_windows]
+    if: always() && !cancelled() && needs.build_on_linux.result == 'success' && needs.build_on_mac.result == 'success' && needs.build_on_windows.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
