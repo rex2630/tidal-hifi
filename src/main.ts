@@ -162,6 +162,14 @@ function configureUserAgent() {
 }
 
 function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
+  // Transparent window is supported on Linux, Windows and macOS.
+  const useTransparentWindow = !!settingsStore.get(settings.transparentWindow);
+
+  // On Windows, transparent windows work best in frameless mode.
+  const useFramelessOnWindows = useTransparentWindow && process.platform === "win32";
+  // On macOS, transparent windows render correctly with a hidden title bar style.
+  const useMacTitleBarStyle = useTransparentWindow && process.platform === "darwin";
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     x: options.x,
@@ -169,9 +177,14 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     width: settingsStore?.get(settings.windowBounds.width),
     height: settingsStore?.get(settings.windowBounds.height),
     icon,
-    backgroundColor: options.backgroundColor,
+    backgroundColor: useTransparentWindow ? "#00000000" : options.backgroundColor,
     autoHideMenuBar: true,
-    transparent: process.platform !== "darwin",
+    transparent: useTransparentWindow,
+    ...(useFramelessOnWindows && { frame: false }),
+    ...(useMacTitleBarStyle && {
+      titleBarStyle: "hiddenInset",
+      vibrancy: "appearance-based",
+    }),
     webPreferences: {
       ...windowPreferences,
       ...{
