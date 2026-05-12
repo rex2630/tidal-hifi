@@ -163,7 +163,7 @@ function configureUserAgent() {
 
 function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
   const useTransparentWindow =
-    process.platform === "linux" && !!settingsStore.get(settings.transparentWindow);
+    process.platform !== "darwin" && !!settingsStore.get(settings.transparentWindow);
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -175,6 +175,7 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     backgroundColor: useTransparentWindow ? "#00000000" : options.backgroundColor,
     autoHideMenuBar: true,
     transparent: useTransparentWindow,
+    frame: useTransparentWindow ? false : true,
     webPreferences: {
       ...windowPreferences,
       ...{
@@ -233,9 +234,15 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     settingsStore.set(settings.windowBounds.root, { width, height });
   });
   mainWindow.webContents.setWindowOpenHandler(() => {
+    const useTransparentChildWindow =
+      process.platform !== "darwin" && !!settingsStore.get(settings.transparentWindow);
+
     return {
       action: "allow",
       overrideBrowserWindowOptions: {
+        transparent: useTransparentChildWindow,
+        frame: useTransparentChildWindow ? false : true,
+        backgroundColor: useTransparentChildWindow ? "#00000000" : undefined,
         webPreferences: {
           sandbox: false,
           plugins: true,
