@@ -16,7 +16,7 @@ import { Logger } from "./features/logger";
 import { addAltKeyMenuBarHandler } from "./features/menuBar/altMenuBar";
 import { MprisService } from "./features/mpris/mprisService";
 import { SharingService } from "./features/sharingService/sharingService";
-import { injectThemeCss } from "./features/theming/theming";
+import { injectThemeCss, injectWindowDragCss } from "./features/theming/theming";
 import { tidalUrl } from "./features/tidal/url";
 import type { MediaInfo } from "./models/mediaInfo";
 import { MediaStatus } from "./models/mediaStatus";
@@ -201,8 +201,11 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
 
   // Inject theme CSS via Chromium-level insertCSS on every page load.
   // This survives SPA hydration / DOM replacement that wipes preload-injected <style> elements.
-  mainWindow.webContents.on("did-finish-load", () => {
-    injectThemeCss(app, mainWindow.webContents);
+  mainWindow.webContents.on("did-finish-load", async () => {
+    await injectThemeCss(app, mainWindow.webContents);
+    if (useTransparentWindow) {
+      await injectWindowDragCss(mainWindow.webContents);
+    }
   });
 
   // find the custom protocol argument
