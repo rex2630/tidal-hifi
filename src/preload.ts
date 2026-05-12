@@ -33,6 +33,57 @@ let tidalController: TidalController;
 let controllerOptions = {};
 let currentMediaInfo = getEmptyMediaInfo();
 
+function spoofWindowsNavigatorAsMac() {
+  if (process.platform !== "win32") return;
+
+  const spoofedPlatform = "MacIntel";
+  const spoofedAppVersion =
+    "5.0 (Macintosh; Intel Mac OS X 13_6_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+  const spoofedUserAgentData = {
+    brands: [
+      { brand: "Chromium", version: "124" },
+      { brand: "Google Chrome", version: "124" },
+    ],
+    mobile: false,
+    platform: "macOS",
+    getHighEntropyValues: async () => ({
+      architecture: "x86",
+      model: "",
+      platform: "macOS",
+      platformVersion: "13.6.4",
+      uaFullVersion: "124.0.0.0",
+    }),
+  };
+
+  try {
+    Object.defineProperty(navigator, "platform", {
+      get: () => spoofedPlatform,
+      configurable: true,
+    });
+
+    Object.defineProperty(navigator, "appVersion", {
+      get: () => spoofedAppVersion,
+      configurable: true,
+    });
+
+    Object.defineProperty(navigator, "vendor", {
+      get: () => "Google Inc.",
+      configurable: true,
+    });
+
+    if ("userAgentData" in navigator) {
+      Object.defineProperty(navigator, "userAgentData", {
+        get: () => spoofedUserAgentData,
+        configurable: true,
+      });
+    }
+  } catch (error) {
+    Logger.log("Navigator spoofing failed:", error);
+  }
+}
+
+spoofWindowsNavigatorAsMac();
+
 switch (settingsStore.get(settings.advanced.controllerType)) {
   case tidalControllers.tidalApiController: {
     tidalController = new TidalApiController();

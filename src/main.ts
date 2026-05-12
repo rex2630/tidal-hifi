@@ -46,7 +46,7 @@ const windowPreferences = {
 };
 
 const defaultWindowsUserAgent =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 // Initialize Logger early so we can use it everywhere
 Logger.watch(ipcMain);
