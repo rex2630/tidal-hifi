@@ -64,7 +64,7 @@
     "copyfiles": "^2.4.1",
     "electron": "github:castlabs/electron-releases#v41.5.0+wvcus",
     "electron-builder": "~26.8.1",
-    "js-yaml": "^4.1.1",
+    "js-yaml": "^5.0.0",
     "markdown-toc": "^1.2.0",
     "node-abi": "^4.31.0",
     "nodemon": "^3.1.14",
