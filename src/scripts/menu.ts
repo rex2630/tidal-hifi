@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu } from "electron";
 
 import { settings } from "../constants/settings";
+import { injectWindowDragCss } from "../features/theming/theming";
 import name from "./../constants/values";
 import { settingsStore, showSettingsWindow } from "./settings";
 
@@ -28,6 +29,12 @@ const tidalMagazineEntry = {
         devTools: true, // I like tinkering, others might too
       },
     });
+
+    if (useTransparentWindow) {
+      magazineWindow.webContents.on("did-finish-load", async () => {
+        await injectWindowDragCss(magazineWindow.webContents);
+      });
+    }
 
     magazineWindow.loadURL("https://tidal.com/magazine/");
     magazineWindow.show();
