@@ -1,8 +1,8 @@
 import { app, BrowserWindow, Menu } from "electron";
 
 import { settings } from "../constants/settings";
-import { injectWindowDragCss } from "../features/theming/theming";
 import name from "./../constants/values";
+import { injectWindowDragCss } from "../features/theming/theming";
 import { settingsStore, showSettingsWindow } from "./settings";
 
 const isMac = process.platform === "darwin";
