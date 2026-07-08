@@ -6,7 +6,7 @@ import type { MediaInfo } from "../../models/mediaInfo";
 import { MediaStatus } from "../../models/mediaStatus";
 import { RepeatState } from "../../models/repeatState";
 import { constrainPollingInterval } from "../../utility/pollingConstraints";
-import { getElement } from "../DomController/domHelpers";
+import { getActivePlayer } from "../DomController/domHelpers";
 import type { TidalController } from "../TidalController";
 import type { ReduxControllerOptions } from "./ReduxControllerOptions";
 import { ReduxStoreActions as Actions } from "./ReduxStoreActions";
@@ -42,8 +42,7 @@ export class ReduxController implements TidalController<ReduxControllerOptions> 
    * Get a player element
    */
   getPlayer() {
-    const player = getElement("player") as HTMLVideoElement;
-    return player || null;
+    return getActivePlayer();
   }
 
   isStoreAvailable(): boolean {

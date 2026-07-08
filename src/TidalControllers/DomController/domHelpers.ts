@@ -9,6 +9,28 @@ export function getElement(key: keyof typeof UI_SELECTORS): HTMLElement | null {
 }
 
 /**
+ * Get the media element that is currently the active playback buffer.
+ *
+ * TIDAL double-buffers audio across multiple `<video>` elements (`video-one`, `video-two`, …)
+ * and alternates between them for gapless/crossfade transitions, so the active element is not
+ * always the same id. Reading a hardcoded `#video-one` therefore returns a dead buffer
+ * (`duration = NaN`, `currentTime = 0`, `volume = 0`) whenever playback has moved to another
+ * element — which is what breaks timestamps, seek position and volume. Instead pick the element
+ * that is actually playing, falling back to any element that has loaded a real duration, then
+ * to the legacy `player` selector.
+ */
+export function getActivePlayer(): HTMLMediaElement | null {
+  const players = Array.from(
+    globalThis.document.querySelectorAll<HTMLMediaElement>("video, audio"),
+  );
+  return (
+    players.find((p) => !p.paused && Number.isFinite(p.duration) && p.duration > 0) ??
+    players.find((p) => Number.isFinite(p.duration) && p.duration > 0) ??
+    (getElement("player") as HTMLMediaElement | null)
+  );
+}
+
+/**
  * Shorthand function to get the text of a dom element
  * @param key of the object selector
  */
