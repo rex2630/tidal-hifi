@@ -3,7 +3,7 @@ import type { Response, Router } from "express";
 
 import { globalEvents } from "../../constants/globalEvents";
 import { settings } from "../../constants/settings";
-import { settingsStore } from "../../scripts/settings";
+import { settingsStore } from "../../scripts/settingsStore";
 import { getCurrentImage } from "./features/current";
 
 /**

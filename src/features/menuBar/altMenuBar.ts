@@ -1,7 +1,7 @@
 import type { BrowserWindow } from "electron";
 
 import { settings } from "../../constants/settings";
-import { settingsStore } from "../../scripts/settings";
+import { settingsStore } from "../../scripts/settingsStore";
 
 /**
  * Workaround for Electron < 40.8.1 regression

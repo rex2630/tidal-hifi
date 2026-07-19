@@ -6,7 +6,7 @@ import { settings } from "../constants/settings";
 import { Logger } from "../features/logger";
 import { MediaStatus } from "../models/mediaStatus";
 import { mediaInfo } from "./mediaInfo";
-import { settingsStore } from "./settings";
+import { settingsStore } from "./settingsStore";
 
 const clientId = "833617820704440341";
 

@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.0.0]
+
+### Security
+
+- Context isolated both the main and the settings window, and removed `@electron/remote` entirely. Privileged actions (dialogs, notifications, album art, theme listing/uploads, tray-icon checks, external links) now go through a small IPC bridge instead of running directly in the page.
+  - Disabling the "skip" sandbox option in the settings **will** sandbox the entire app; if your system isn't set up properly it won't launch anymore.
+- Themes can no longer be used to read arbitrary files: theme paths are validated and confined to the themes directory.
+
+### Themes
+
+- Added the "Aura Dracula Spirit Soft" theme.
+
 ## [7.0.1]
 
 - Added correct version info into about section

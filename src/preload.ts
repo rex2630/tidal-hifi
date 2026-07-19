@@ -1,18 +1,17 @@
-import { app, dialog, Notification } from "@electron/remote";
-import { clipboard, ipcRenderer } from "electron";
+import { ipcRenderer } from "electron";
 
+import { bridgeChannels } from "./constants/bridge";
 import { tidalControllers } from "./constants/controller";
 import { globalEvents } from "./constants/globalEvents";
 import { settings } from "./constants/settings";
 import { getCurrentHotkeyConfig } from "./features/hotkeys";
-import { downloadImage } from "./features/icon/downloadImage";
 import { Logger } from "./features/logger";
 import { getTrackURL, getUniversalLink } from "./features/tidal/url";
 import { getEmptyMediaInfo, type MediaInfo } from "./models/mediaInfo";
 import { RepeatState, type RepeatStateType } from "./models/repeatState";
 import { isSeekEvent } from "./models/seekEvent";
 import { addHotkey } from "./scripts/hotkeys";
-import { settingsStore } from "./scripts/settings";
+import { settingsStore } from "./scripts/settingsStore";
 import { setTitle } from "./scripts/window-functions";
 import { TidalApiController } from "./TidalControllers/apiController/TidalApiController";
 import { DomTidalController } from "./TidalControllers/DomController/DomTidalController";
@@ -22,12 +21,9 @@ import { MediaSessionController } from "./TidalControllers/MediaSessionControlle
 import { ReduxController } from "./TidalControllers/ReduxController/ReduxController";
 import type { TidalController } from "./TidalControllers/TidalController";
 
-const albumArtPath = `${app.getPath("userData")}/current.jpg`;
 const staticTitle = "TIDAL Hi-Fi";
 
 let currentSong = "";
-
-let currentNotification: Electron.Notification;
 
 let tidalController: TidalController;
 let controllerOptions = {};
@@ -99,11 +95,11 @@ function addHotKeys() {
     });
     addHotkey(hotkeyConfig.shareTrackLink, async () => {
       const url = getUniversalLink(getTrackURL(tidalController.getTrackId()));
-      clipboard.writeText(url);
-      new Notification({
+      ipcRenderer.send(bridgeChannels.clipboardWriteText, url);
+      ipcRenderer.send(bridgeChannels.notificationShow, {
         title: "Universal link generated: ",
         body: `URL copied to clipboard: ${url}`,
-      }).show();
+      });
     });
     addHotkey(hotkeyConfig.goBack, () => {
       globalThis.history.back();
@@ -186,16 +182,16 @@ function addHotKeys() {
 function handleLogout() {
   const logoutOptions = ["Cancel", "Yes, please", "No, thanks"];
 
-  dialog
-    .showMessageBox({
+  ipcRenderer
+    .invoke(bridgeChannels.dialogShowMessageBox, {
       type: "question",
       title: "Logging out",
       message: "Are you sure you want to log out?",
       buttons: logoutOptions,
       defaultId: 2,
     })
-    .then((result: { response: number }) => {
-      if (logoutOptions.indexOf("Yes, please") === result.response) {
+    .then((response: number) => {
+      if (logoutOptions.indexOf("Yes, please") === response) {
         for (let i = 0; i < window.localStorage.length; i++) {
           const key = window.localStorage.key(i);
           if (key?.startsWith("_TIDAL_activeSession")) {
@@ -312,19 +308,11 @@ function updateMediaInfo(mediaInfo: MediaInfo, notify: boolean) {
  */
 async function sendNotification(mediaInfo: MediaInfo) {
   if (settingsStore.get(settings.notifications)) {
-    try {
-      if (currentNotification) {
-        currentNotification.close();
-      }
-      currentNotification = new Notification({
-        title: mediaInfo.title,
-        body: mediaInfo.artists,
-        icon: mediaInfo.localAlbumArt || mediaInfo.image || mediaInfo.icon,
-      });
-      currentNotification.show();
-    } catch (error) {
-      Logger.log("Failed to send notification:", error);
-    }
+    ipcRenderer.send(bridgeChannels.notificationShow, {
+      title: mediaInfo.title,
+      body: mediaInfo.artists,
+      icon: mediaInfo.localAlbumArt || mediaInfo.image || mediaInfo.icon,
+    });
   }
 }
 
@@ -382,7 +370,10 @@ tidalController.onMediaInfoUpdate(async (newState) => {
     }
 
     if (imageUrlToDownload) {
-      currentMediaInfo.localAlbumArt = await downloadImage(imageUrlToDownload, albumArtPath);
+      currentMediaInfo.localAlbumArt = await ipcRenderer.invoke(
+        bridgeChannels.downloadAlbumArt,
+        imageUrlToDownload,
+      );
     } else {
       currentMediaInfo.localAlbumArt = "";
     }

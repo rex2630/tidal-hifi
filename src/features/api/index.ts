@@ -4,7 +4,7 @@ import express from "express";
 import swaggerUi from "swagger-ui-express";
 
 import { settings } from "../../constants/settings";
-import { settingsStore } from "../../scripts/settings";
+import { settingsStore } from "../../scripts/settingsStore";
 import { addCurrentInfo } from "./features/current";
 import { addHealthEndpoint } from "./features/health";
 import { addPlaybackControl } from "./features/player";

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { settings } from "../../constants/settings";
-import { settingsStore } from "../../scripts/settings";
+import { settingsStore } from "../../scripts/settingsStore";
 import { Logger } from "../logger";
 
 /**
@@ -19,6 +19,85 @@ function parseThemeId(themeId: string): { source: "builtin" | "user" | "legacy";
 }
 
 /**
+ * Validate that a theme filename is a safe `.css` reference.
+ *
+ * Nested paths (e.g. "dark/blue.css") are allowed — the actual security
+ * boundary (staying inside the themes directory) is enforced separately by the
+ * confinement check in `resolveThemePath`. Here we only reject the cases that
+ * enable traversal or are otherwise malformed: `..` / `.` segments, absolute or
+ * empty segments, NUL/control characters, and non-`.css` files.
+ */
+export function isSafeThemeName(name: string): boolean {
+  if (!name || name.length > 255) return false;
+  // Reject NUL and other control characters outright.
+  for (let i = 0; i < name.length; i++) {
+    if (name.charCodeAt(i) < 0x20) return false;
+  }
+  // Split into path segments (allowing nested themes) and reject traversal,
+  // current-dir, or empty segments (the latter catch absolute paths and "//").
+  const segments = name.split(/[/\\]/);
+  if (segments.some((segment) => segment === "" || segment === "." || segment === "..")) {
+    return false;
+  }
+  // Only allow .css files.
+  if (!name.toLowerCase().endsWith(".css")) return false;
+  return true;
+}
+
+const themesFolderName = "themes";
+
+/**
+ * The user-writable themes directory (~/.config/tidal-hifi/themes/).
+ */
+export function getUserThemeDirectory(app: Electron.App): string {
+  return path.join(app.getPath("userData"), themesFolderName);
+}
+
+/**
+ * The built-in themes directories: the bundled resources dir, plus the
+ * project-root `themes/` directory in development.
+ */
+export function getBuiltInThemeDirectories(app: Electron.App): string[] {
+  const dirs = [path.join(process.resourcesPath, themesFolderName)];
+  if (!app.isPackaged) {
+    dirs.push(path.join(process.cwd(), themesFolderName));
+  }
+  return dirs;
+}
+
+/**
+ * Create the directory used to store user themes.
+ */
+export function makeUserThemesDirectory(directory: string): void {
+  try {
+    fs.mkdirSync(directory, { recursive: true });
+  } catch (err) {
+    Logger.log(`Failed to make user theme directory: ${directory}`, err);
+  }
+}
+
+/**
+ * Read the `.css` filenames from a directory and return them sorted.
+ * @param directory to read from. Created if missing (unless `readOnly`).
+ * @param readOnly skip directory creation (for bundled/read-only paths).
+ */
+export function getThemeListFromDirectory(directory: string, readOnly = false): string[] {
+  try {
+    if (!readOnly) {
+      makeUserThemesDirectory(directory);
+    }
+    return fs
+      .readdirSync(directory, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".css"))
+      .map((entry) => entry.name)
+      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+  } catch (err) {
+    Logger.log(`Failed to get files from ${directory}`, err);
+    return [];
+  }
+}
+
+/**
  * Resolve the theme file path.
  *
  * When the theme identifier contains a source prefix the lookup is scoped:
@@ -29,34 +108,55 @@ function parseThemeId(themeId: string): { source: "builtin" | "user" | "legacy";
  *   1. User data directory (~/.config/tidal-hifi/themes/)
  *   2. Bundled resources directory (process.resourcesPath/themes/)
  *   3. Local project themes/ directory (dev fallback)
+ *
+ * Every candidate is validated: the name must be a plain `.css` filename and the
+ * resolved path must stay inside its themes directory. Returns `null` (no theme)
+ * when the identifier is unsafe or no valid file exists.
  */
-export function resolveThemePath(app: Electron.App, themeId: string): string {
-  const themesFolderName = "themes";
+export function resolveThemePath(app: Electron.App, themeId: string): string | null {
   const { source, name } = parseThemeId(themeId);
 
-  const builtInCandidates = [path.join(process.resourcesPath, themesFolderName, name)];
-  // In development, also check the project-root themes/ directory
-  if (!app.isPackaged) {
-    Logger.log("Loading development themes");
-    builtInCandidates.push(path.join(process.cwd(), themesFolderName, name));
+  if (!isSafeThemeName(name)) {
+    Logger.log(`Rejected unsafe theme identifier: "${themeId}"`);
+    return null;
   }
-  const userCandidate = path.join(app.getPath("userData"), themesFolderName, name);
 
-  let candidates: string[];
+  const builtInDirs = getBuiltInThemeDirectories(app);
+  const userDir = getUserThemeDirectory(app);
+
+  let dirs: string[];
   switch (source) {
     case "builtin":
-      candidates = builtInCandidates;
+      dirs = builtInDirs;
       break;
     case "user":
-      candidates = [userCandidate];
+      dirs = [userDir];
       break;
     default:
       // legacy: check all locations (user first for backward compat)
-      candidates = [userCandidate, ...builtInCandidates];
+      dirs = [userDir, ...builtInDirs];
       break;
   }
 
-  return candidates.find((p) => fs.existsSync(p)) ?? candidates[0];
+  for (const dir of dirs) {
+    const root = path.resolve(dir) + path.sep;
+    const resolved = path.resolve(dir, name);
+    // Confine the resolved path to the themes directory, even if it exists.
+    if (!resolved.startsWith(root)) {
+      Logger.log(`Rejected theme path outside themes directory: ${resolved}`);
+      continue;
+    }
+    try {
+      if (fs.statSync(resolved).isFile()) {
+        return resolved;
+      }
+    } catch {
+      // Candidate doesn't exist in this directory; try the next one.
+    }
+  }
+
+  Logger.log(`No valid theme file found for identifier: "${themeId}"`);
+  return null;
 }
 
 /**
@@ -90,12 +190,14 @@ export async function injectThemeCss(app: Electron.App, webContents: Electron.We
   const themeId = settingsStore.get<string, string>(settings.theme);
   if (themeId !== "none") {
     const themeFile = resolveThemePath(app, themeId);
-    Logger.log(`Loading theme "${themeId}" from: ${themeFile}`);
-    try {
-      const css = fs.readFileSync(themeFile, "utf-8");
-      newKeys.push(await webContents.insertCSS(css));
-    } catch (error) {
-      Logger.log("An error occurred reading the theme file.", error);
+    if (themeFile) {
+      Logger.log(`Loading theme "${themeId}" from: ${themeFile}`);
+      try {
+        const css = fs.readFileSync(themeFile, "utf-8");
+        newKeys.push(await webContents.insertCSS(css));
+      } catch (error) {
+        Logger.log("An error occurred reading the theme file.", error);
+      }
     }
   }
   const customCSS = settingsStore.get<string, string[]>(settings.customCSS);

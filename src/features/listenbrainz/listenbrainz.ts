@@ -3,7 +3,7 @@ import axios from "axios";
 import { settings } from "../../constants/settings";
 import type { MediaInfo } from "../../models/mediaInfo";
 import { MediaStatus } from "../../models/mediaStatus";
-import { settingsStore } from "../../scripts/settings";
+import { settingsStore } from "../../scripts/settingsStore";
 import { constrainPollingInterval } from "../../utility/pollingConstraints";
 import { Logger } from "../logger";
 import { tidalUrl } from "../tidal/url";

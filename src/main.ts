@@ -1,5 +1,5 @@
 import path from "node:path";
-import { enable, initialize } from "@electron/remote/main";
+import { initialize } from "@electron/remote/main";
 import { app, BrowserWindow, components, ipcMain, session } from "electron";
 
 import { globalEvents } from "./constants/globalEvents";
@@ -11,6 +11,8 @@ import {
   acquireInhibitorIfInactive,
   releaseInhibitorIfActive,
 } from "./features/idleInhibitor/idleInhibitor";
+import { registerRendererBridge } from "./features/ipc/rendererBridge";
+import { registerSettingsBridge } from "./features/ipc/settingsBridge";
 import { ListenBrainz } from "./features/listenbrainz/listenbrainz";
 import { Logger } from "./features/logger";
 import { addAltKeyMenuBarHandler } from "./features/menuBar/altMenuBar";
@@ -23,6 +25,7 @@ import { MediaStatus } from "./models/mediaStatus";
 import { initRPC, rpc, unRPC } from "./scripts/discord";
 import { updateMediaInfo } from "./scripts/mediaInfo";
 import { addMenu } from "./scripts/menu";
+import { isSandboxDisabled } from "./scripts/sandbox";
 import {
   closeSettingsWindow,
   createSettingsWindow,
@@ -38,8 +41,11 @@ let mprisService: MprisService | null;
 let mainWindow: BrowserWindow;
 const icon = path.join(__dirname, "../assets/icon.png");
 const PROTOCOL_PREFIX = "tidal";
+
+const sandboxDisabled = isSandboxDisabled();
+
 const windowPreferences = {
-  sandbox: false,
+  sandbox: !sandboxDisabled,
   plugins: true,
   devTools: true, // Ensure devTools is enabled for debugging
   contextIsolation: true, // Enable context isolation for Security
@@ -47,6 +53,20 @@ const windowPreferences = {
 
 // Initialize Logger early so we can use it everywhere
 Logger.watch(ipcMain);
+
+Logger.log(
+  sandboxDisabled
+    ? "Renderer sandbox is DISABLED (--no-sandbox or the disableSandbox setting is active)"
+    : "Renderer sandbox is ENABLED",
+);
+
+// Register the IPC bridge that sandboxed renderers use for privileged
+// operations (dialogs, notifications, album-art downloads).
+registerRendererBridge();
+
+// Register the IPC bridge used by the context-isolated settings window
+// (theme listing/uploads, tray-icon path checks, opening external links).
+registerSettingsBridge();
 
 setDefaultFlags(app);
 setManagedFlagsFromSettings(app);
@@ -180,7 +200,6 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     },
   });
 
-  enable(mainWindow.webContents);
   registerHttpProtocols();
   syncMenuBarWithStore();
   configureUserAgent();
@@ -234,7 +253,7 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
       action: "allow",
       overrideBrowserWindowOptions: {
         webPreferences: {
-          sandbox: false,
+          sandbox: !sandboxDisabled,
           plugins: true,
           devTools: true, // I like tinkering, others might too
         },
@@ -332,10 +351,6 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   // Ensure cleanup happens even if quit is triggered externally
   performCleanup();
-});
-
-app.on("browser-window-created", (_, window) => {
-  enable(window.webContents);
 });
 
 // IPC
