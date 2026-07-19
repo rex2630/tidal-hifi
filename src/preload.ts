@@ -390,9 +390,10 @@ tidalController.onMediaInfoUpdate(async (newState) => {
     if (settingsStore.get(settings.skipArtists)) {
       const skippedArtists = settingsStore.get<string, string[]>(settings.skippedArtists);
       if (skippedArtists.length > 0) {
-        const artistsToSkip = skippedArtists.map((artist) => artist);
-        const artistNames = Object.values(artists).map((artist) => artist);
-        const foundArtist = artistNames.some((artist) => artistsToSkip.includes(artist));
+        const artistsToSkip = skippedArtists.map((artist) => artist.trim().toLowerCase());
+        const foundArtist = artists.some(
+          (artist) => artist && artistsToSkip.includes(artist.trim().toLowerCase()),
+        );
         if (foundArtist) {
           tidalController.next();
         }

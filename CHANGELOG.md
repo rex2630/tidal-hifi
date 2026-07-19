@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [8.0.0]
 
+### added
+
+- artist skipping is now case insensitive
+
+### fixes
+
+- added proper `seeked` updates to mpris when actual and expected playtime differ
+- multi artists tracks now report all artists in MPRIS, API & discord thanks to [AleksandarN-BG](https://github.com/AleksandarN-BG)
+- hard reload now bypasses caching, fixes [#956](https://github.com/Mastermindzh/tidal-hifi/issues/956) by [floze-the-genius](https://github.com/floze-the-genius)
+
 ### Security
 
 - Context isolated both the main and the settings window, and removed `@electron/remote` entirely. Privileged actions (dialogs, notifications, album art, theme listing/uploads, tray-icon checks, external links) now go through a small IPC bridge instead of running directly in the page.

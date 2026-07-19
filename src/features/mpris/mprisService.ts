@@ -17,9 +17,15 @@ import {
 export class MprisService {
   private player: Player | null = null;
   private currentPosition = 0; // Track current position in seconds
+  private lastReportedPosition = 0; // Last position (seconds) we emitted a Seeked signal for
+  private lastPositionSampledAt = 0; // Epoch ms when lastReportedPosition was captured
   private isReconnecting = false;
   private lastTrackMetadataKey = ""; // Used to skip redundant D-Bus metadata updates
   private static readonly TIDAL_RESOURCE_PREFIX = "https://resources.tidal.com/images/";
+  // How far (seconds) the real position may drift from the extrapolated position
+  // before we treat it as a seek and resync clients. The poll runs every ~500 ms,
+  // so normal drift stays well under this.
+  private static readonly POSITION_DRIFT_TOLERANCE_SECONDS = 2;
 
   constructor(private mainWindow: BrowserWindow) {}
 
@@ -197,6 +203,36 @@ export class MprisService {
     };
   }
 
+  /**
+   * Emit the MPRIS `Seeked` signal when the real position diverges from what a
+   * client would extrapolate on its own, so client progress counters stay in
+   * sync. During steady playback the position advances predictably and no signal
+   * is emitted; a track change or a scrub/seek produces a jump that we report.
+   */
+  private syncPosition(positionSeconds: number, isPlaying: boolean, trackChanged: boolean): void {
+    if (!this.player) return;
+
+    const now = Date.now();
+    const firstSample = this.lastPositionSampledAt === 0;
+    const elapsedSeconds = firstSample ? 0 : (now - this.lastPositionSampledAt) / 1000;
+    const expected = isPlaying
+      ? this.lastReportedPosition + elapsedSeconds
+      : this.lastReportedPosition;
+    const drifted =
+      Math.abs(positionSeconds - expected) > MprisService.POSITION_DRIFT_TOLERANCE_SECONDS;
+
+    if (firstSample || trackChanged || drifted) {
+      try {
+        this.player.seeked(convertSecondsToMicroseconds(positionSeconds));
+      } catch (error) {
+        Logger.log("Error emitting MPRIS Seeked signal:", error);
+      }
+    }
+
+    this.lastReportedPosition = positionSeconds;
+    this.lastPositionSampledAt = now;
+  }
+
   private setupQuitHandler(): void {
     if (!this.player) return;
 
@@ -250,7 +286,9 @@ export class MprisService {
         safeDuration,
       ]);
 
-      if (trackMetadataKey !== this.lastTrackMetadataKey) {
+      const trackChanged = trackMetadataKey !== this.lastTrackMetadataKey;
+
+      if (trackChanged) {
         this.lastTrackMetadataKey = trackMetadataKey;
 
         // Compute custom metadata only when the track has actually changed to
@@ -278,7 +316,14 @@ export class MprisService {
         };
       }
 
-      this.player.playbackStatus = mediaInfo.status === MediaStatus.paused ? "Paused" : "Playing";
+      const isPlaying = mediaInfo.status !== MediaStatus.paused;
+      this.player.playbackStatus = isPlaying ? "Playing" : "Paused";
+
+      // MPRIS Position is not part of PropertiesChanged, so clients extrapolate it
+      // locally and only resync when they receive the Seeked signal. Emit it on
+      // track changes and on discontinuous jumps (seeks) so the client counter
+      // stays accurate; steady playback still relies on client-side extrapolation.
+      this.syncPosition(this.currentPosition, isPlaying, trackChanged);
 
       // Update player state from mediaInfo if available
       if (mediaInfo.player) {
@@ -420,6 +465,8 @@ export class MprisService {
       }
       this.player = null;
       this.currentPosition = 0;
+      this.lastReportedPosition = 0;
+      this.lastPositionSampledAt = 0;
     }
 
     Logger.log("MPRIS service destroyed");
