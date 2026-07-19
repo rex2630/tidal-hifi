@@ -168,6 +168,23 @@ export function resolveThemePath(app: Electron.App, themeId: string): string | n
 const insertedCssKeys = new WeakMap<Electron.WebContents, string[]>();
 
 /**
+ * Track the theme/custom-CSS signature last injected into each webContents so
+ * we can skip re-injection (and the visible flicker it causes) when unrelated
+ * settings change.
+ */
+const injectedThemeSignature = new WeakMap<Electron.WebContents, string>();
+
+/**
+ * A signature of everything {@link injectThemeCss} renders, so we can detect
+ * whether a re-injection would actually change anything.
+ */
+function currentThemeSignature(): string {
+  const themeId = settingsStore.get<string, string>(settings.theme);
+  const customCSS = settingsStore.get<string, string[]>(settings.customCSS) ?? [];
+  return JSON.stringify([themeId, customCSS]);
+}
+
+/**
  * Inject theme and custom CSS into a BrowserWindow's webContents via Chromium-level insertCSS.
  * Attach this to the `did-finish-load` event of any window that should be themed.
  *
@@ -206,4 +223,21 @@ export async function injectThemeCss(app: Electron.App, webContents: Electron.We
   }
 
   insertedCssKeys.set(webContents, newKeys);
+  injectedThemeSignature.set(webContents, currentThemeSignature());
+}
+
+/**
+ * Re-inject theme/custom CSS only when the theme or custom CSS has actually
+ * changed since the last injection into this webContents. `storeChanged` fires
+ * for every setting change, so re-injecting unconditionally would flicker the
+ * window on unrelated changes.
+ */
+export async function injectThemeCssIfChanged(
+  app: Electron.App,
+  webContents: Electron.WebContents,
+) {
+  if (injectedThemeSignature.get(webContents) === currentThemeSignature()) {
+    return;
+  }
+  await injectThemeCss(app, webContents);
 }

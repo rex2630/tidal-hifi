@@ -10,7 +10,7 @@ import { getTrackURL, getUniversalLink } from "./features/tidal/url";
 import { getEmptyMediaInfo, type MediaInfo } from "./models/mediaInfo";
 import { RepeatState, type RepeatStateType } from "./models/repeatState";
 import { isSeekEvent } from "./models/seekEvent";
-import { addHotkey } from "./scripts/hotkeys";
+import { addHotkey, removeHotkeys } from "./scripts/hotkeys";
 import { settingsStore } from "./scripts/settingsStore";
 import { setTitle } from "./scripts/window-functions";
 import { TidalApiController } from "./TidalControllers/apiController/TidalApiController";
@@ -210,6 +210,30 @@ function addFullScreenListeners() {
 }
 
 /**
+ * Apply the window title based on the current settings and media info. Called
+ * both when a new song starts and when settings change so the
+ * `staticWindowTitle` toggle takes effect without a restart.
+ */
+function applyWindowTitle() {
+  if (settingsStore.get(settings.staticWindowTitle) || !currentMediaInfo.title) {
+    setTitle(staticTitle);
+  } else {
+    setTitle(`${currentMediaInfo.title} - ${currentMediaInfo.artists}`);
+  }
+}
+
+/**
+ * Re-apply settings that are otherwise only read once at startup, so changes
+ * made in the settings window take effect live. Triggered by the main process
+ * on `storeChanged`. Theme/custom CSS is re-injected from the main process.
+ */
+function reapplyLiveSettings() {
+  removeHotkeys();
+  addHotKeys();
+  applyWindowTitle();
+}
+
+/**
  * Add ipc event listeners.
  * Some actions triggered outside of the site need info from the site.
  */
@@ -281,8 +305,12 @@ function addIPCEventListeners() {
 
   ipcRenderer.on("globalEvent", globalEventHandler);
 
+  const storeChangedHandler = () => reapplyLiveSettings();
+  ipcRenderer.on(globalEvents.storeChanged, storeChangedHandler);
+
   window.addEventListener("beforeunload", () => {
     ipcRenderer.removeListener("globalEvent", globalEventHandler);
+    ipcRenderer.removeListener(globalEvents.storeChanged, storeChangedHandler);
     tidalController.destroy();
   });
 }

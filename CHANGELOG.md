@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### added
 
 - artist skipping is now case insensitive
+- more settings apply live, including theme switching 🥳
+- Everforest theme added by [Ble4K](https://github.com/Ble4K)
 
 ### fixes
 

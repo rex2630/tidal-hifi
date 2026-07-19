@@ -2,7 +2,7 @@ import path from "node:path";
 import { app, BrowserWindow, shell } from "electron";
 
 import { settings } from "../constants/settings";
-import { injectThemeCss } from "../features/theming/theming";
+import { injectThemeCss, injectThemeCssIfChanged } from "../features/theming/theming";
 import { isSandboxDisabled } from "./sandbox";
 import { settingsStore } from "./settingsStore";
 
@@ -75,6 +75,17 @@ export const hideSettingsWindow = () => {
 
 export const closeSettingsWindow = () => {
   settingsWindow = null;
+};
+
+/**
+ * Re-inject the theme/custom CSS into the settings window when it has actually
+ * changed, so theme changes preview live without flickering on unrelated
+ * setting updates.
+ */
+export const refreshSettingsWindowTheme = () => {
+  if (settingsWindow) {
+    injectThemeCssIfChanged(app, settingsWindow.webContents);
+  }
 };
 
 /**

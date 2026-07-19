@@ -18,7 +18,7 @@ import { Logger } from "./features/logger";
 import { addAltKeyMenuBarHandler } from "./features/menuBar/altMenuBar";
 import { MprisService } from "./features/mpris/mprisService";
 import { SharingService } from "./features/sharingService/sharingService";
-import { injectThemeCss } from "./features/theming/theming";
+import { injectThemeCss, injectThemeCssIfChanged } from "./features/theming/theming";
 import { tidalUrl } from "./features/tidal/url";
 import type { MediaInfo } from "./models/mediaInfo";
 import { MediaStatus } from "./models/mediaStatus";
@@ -30,6 +30,7 @@ import {
   closeSettingsWindow,
   createSettingsWindow,
   hideSettingsWindow,
+  refreshSettingsWindowTheme,
   settingsStore,
   showSettingsWindow,
 } from "./scripts/settings";
@@ -401,6 +402,15 @@ ipcMain.on(globalEvents.refreshMenuBar, () => {
 
 ipcMain.on(globalEvents.storeChanged, () => {
   syncMenuBarWithStore();
+
+  // Re-inject theme + custom CSS only when it actually changed, so appearance
+  // changes apply live without flickering the window on unrelated settings.
+  injectThemeCssIfChanged(app, mainWindow.webContents);
+  refreshSettingsWindowTheme();
+
+  // Notify the main renderer so it can re-apply settings that are otherwise only
+  // read at startup (hotkeys, window title).
+  mainWindow.webContents.send(globalEvents.storeChanged);
 
   if (settingsStore.get(settings.enableDiscord) && !rpc) {
     initRPC();
