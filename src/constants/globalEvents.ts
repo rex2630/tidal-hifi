@@ -11,6 +11,7 @@ export const globalEvents = {
   storeChanged: "storeChanged",
   error: "error",
   getUniversalLink: "getUniversalLink",
+  hardReload: "hardReload",
   log: "log",
   toggleFavorite: "toggleFavorite",
   toggleShuffle: "toggleShuffle",

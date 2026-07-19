@@ -91,8 +91,7 @@ function addHotKeys() {
       handleLogout();
     });
     addHotkey(hotkeyConfig.hardReload, () => {
-      // reloading window without cache should show the update bar if applicable
-      window.location.reload();
+      ipcRenderer.send(globalEvents.hardReload);
     });
     addHotkey(hotkeyConfig.toggleRepeat, () => {
       tidalController.repeat();
