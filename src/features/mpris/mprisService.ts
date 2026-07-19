@@ -263,7 +263,12 @@ export class MprisService {
         // PropertiesChanged signal, so we only do it when the track changes.
         this.player.metadata = {
           "xesam:title": mediaInfo.title || "",
-          "xesam:artist": [mediaInfo.artists || ""],
+          // xesam:artist is an array of individual artists; prefer the parsed list so GNOME
+          // shows every credited artist, falling back to the joined string when it's absent.
+          "xesam:artist":
+            mediaInfo.artistsArray && mediaInfo.artistsArray.length > 0
+              ? mediaInfo.artistsArray
+              : [mediaInfo.artists || ""],
           "xesam:album": mediaInfo.album || "",
           "xesam:url": mediaInfo.url || "",
           "mpris:artUrl": artUrl,
