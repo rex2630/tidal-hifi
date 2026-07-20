@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - multi artists tracks now report all artists in MPRIS, API & discord thanks to [AleksandarN-BG](https://github.com/AleksandarN-BG)
 - hard reload now bypasses caching, fixes [#956](https://github.com/Mastermindzh/tidal-hifi/issues/956) by [floze-the-genius](https://github.com/floze-the-genius)
 - transparent window now maximizes to fill the whole screen on Linux, fixes [#866](https://github.com/Mastermindzh/tidal-hifi/issues/866)
+- ListenBrainz scrobbling is now more resilient: requests time out and retry transient network errors ("socket hang up"), and an unknown track duration is no longer sent as `0` (which the API rejected with HTTP 400)
 
 ### Security
 

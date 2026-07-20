@@ -17,6 +17,11 @@ export class ListenBrainz {
   private static lastKnownPosition = 0;
   private static currentPlayingNowDelayId: ReturnType<typeof setTimeout>;
 
+  /** How long to wait for a ListenBrainz request before giving up. */
+  private static readonly requestTimeoutMs = 10000;
+  /** Number of attempts for transient network failures (e.g. "socket hang up"). */
+  private static readonly maxNetworkAttempts = 3;
+
   /**
    * Execute a "playing_now" operation with delay, cancelling any pending "playing_now" operations
    */
@@ -46,13 +51,21 @@ export class ListenBrainz {
     duration: number,
   ) {
     // Create a clean, serializable object
+    const additional_info: Record<string, unknown> = {
+      media_player: "Tidal Hi-Fi",
+      submission_client: "Tidal Hi-Fi",
+      music_service: tidalUrl,
+    };
+
+    // ListenBrainz rejects the entire submission with HTTP 400 when `duration`
+    // is present but not a positive integer, so only include it when known.
+    const normalizedDuration = Number(duration);
+    if (Number.isFinite(normalizedDuration) && normalizedDuration > 0) {
+      additional_info.duration = Math.round(normalizedDuration);
+    }
+
     return {
-      additional_info: {
-        media_player: "Tidal Hi-Fi",
-        submission_client: "Tidal Hi-Fi",
-        music_service: tidalUrl,
-        duration: Number(duration) || 0,
-      },
+      additional_info,
       artist_name: String(artists || ""),
       track_name: String(title || ""),
       release_name: String(album || ""),
@@ -71,12 +84,7 @@ export class ListenBrainz {
       const serializedData = JSON.parse(JSON.stringify(data));
 
       // CodeQL [js/request-forgery] - User-configured API endpoint is intentional for ListenBrainz integration
-      await axios.post(apiUrl, serializedData, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${token}`,
-        },
-      });
+      await ListenBrainz.postWithRetry(apiUrl, serializedData, token);
     } catch (error: unknown) {
       const isAxiosError = error && typeof error === "object" && "response" in error;
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -90,6 +98,38 @@ export class ListenBrainz {
         data: data,
       });
       throw error;
+    }
+  }
+
+  /**
+   * POST to ListenBrainz, retrying transient network failures (e.g. the
+   * frequent "socket hang up" the ListenBrainz API returns) with a short
+   * exponential backoff. HTTP responses (4xx/5xx) are never retried since the
+   * server already answered.
+   */
+  private static async postWithRetry(apiUrl: string, data: any, token: string): Promise<void> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await axios.post(apiUrl, data, {
+          timeout: ListenBrainz.requestTimeoutMs,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Token ${token}`,
+          },
+        });
+        return;
+      } catch (error: unknown) {
+        const hasResponse =
+          !!error && typeof error === "object" && "response" in error && !!(error as any).response;
+
+        // Only retry when the server never responded (network-level failure).
+        if (hasResponse || attempt >= ListenBrainz.maxNetworkAttempts) {
+          throw error;
+        }
+
+        const backoffMs = 500 * 2 ** (attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
     }
   }
 
@@ -193,8 +233,13 @@ export class ListenBrainz {
           );
         });
       } else if (!ListenBrainz.currentTrackScrobbled) {
-        // Check if we should scrobble (half duration or 4 minutes, whichever is sooner)
-        const scrobbleThreshold = Math.min(ListenBrainz.currentTrackDuration / 2, 240);
+        // Check if we should scrobble (half duration or 4 minutes, whichever is sooner).
+        // When the duration is unknown (0), fall back to the 4 minute rule instead of
+        // scrobbling immediately (which would also submit an invalid duration).
+        const scrobbleThreshold =
+          ListenBrainz.currentTrackDuration > 0
+            ? Math.min(ListenBrainz.currentTrackDuration / 2, 240)
+            : 240;
 
         if (currentInSeconds >= scrobbleThreshold) {
           ListenBrainz.currentTrackScrobbled = true;
