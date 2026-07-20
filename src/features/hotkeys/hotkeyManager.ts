@@ -1,5 +1,5 @@
 import { settings } from "../../constants/settings";
-import { settingsStore } from "../../scripts/settings";
+import { settingsStore } from "../../scripts/settingsStore";
 import { getDefaultHotkeyConfig, getHotkeyAction, type HotkeyConfig } from "./hotkeyConfig";
 
 /**

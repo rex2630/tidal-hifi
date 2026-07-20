@@ -1,6 +1,6 @@
 import path from "node:path";
-import { enable, initialize } from "@electron/remote/main";
-import { app, BrowserWindow, components, ipcMain, session } from "electron";
+import { initialize } from "@electron/remote/main";
+import { app, BrowserWindow, components, ipcMain, screen, session } from "electron";
 
 import { globalEvents } from "./constants/globalEvents";
 import { settings } from "./constants/settings";
@@ -11,22 +11,26 @@ import {
   acquireInhibitorIfInactive,
   releaseInhibitorIfActive,
 } from "./features/idleInhibitor/idleInhibitor";
+import { registerRendererBridge } from "./features/ipc/rendererBridge";
+import { registerSettingsBridge } from "./features/ipc/settingsBridge";
 import { ListenBrainz } from "./features/listenbrainz/listenbrainz";
 import { Logger } from "./features/logger";
 import { addAltKeyMenuBarHandler } from "./features/menuBar/altMenuBar";
 import { MprisService } from "./features/mpris/mprisService";
 import { SharingService } from "./features/sharingService/sharingService";
-import { injectThemeCss } from "./features/theming/theming";
+import { injectThemeCss, injectThemeCssIfChanged } from "./features/theming/theming";
 import { tidalUrl } from "./features/tidal/url";
 import type { MediaInfo } from "./models/mediaInfo";
 import { MediaStatus } from "./models/mediaStatus";
 import { initRPC, rpc, unRPC } from "./scripts/discord";
 import { updateMediaInfo } from "./scripts/mediaInfo";
 import { addMenu } from "./scripts/menu";
+import { isSandboxDisabled } from "./scripts/sandbox";
 import {
   closeSettingsWindow,
   createSettingsWindow,
   hideSettingsWindow,
+  refreshSettingsWindowTheme,
   settingsStore,
   showSettingsWindow,
 } from "./scripts/settings";
@@ -38,8 +42,11 @@ let mprisService: MprisService | null;
 let mainWindow: BrowserWindow;
 const icon = path.join(__dirname, "../assets/icon.png");
 const PROTOCOL_PREFIX = "tidal";
+
+const sandboxDisabled = isSandboxDisabled();
+
 const windowPreferences = {
-  sandbox: false,
+  sandbox: !sandboxDisabled,
   plugins: true,
   devTools: true, // Ensure devTools is enabled for debugging
   contextIsolation: true, // Enable context isolation for Security
@@ -47,6 +54,20 @@ const windowPreferences = {
 
 // Initialize Logger early so we can use it everywhere
 Logger.watch(ipcMain);
+
+Logger.log(
+  sandboxDisabled
+    ? "Renderer sandbox is DISABLED (--no-sandbox or the disableSandbox setting is active)"
+    : "Renderer sandbox is ENABLED",
+);
+
+// Register the IPC bridge that sandboxed renderers use for privileged
+// operations (dialogs, notifications, album-art downloads).
+registerRendererBridge();
+
+// Register the IPC bridge used by the context-isolated settings window
+// (theme listing/uploads, tray-icon path checks, opening external links).
+registerSettingsBridge();
 
 setDefaultFlags(app);
 setManagedFlagsFromSettings(app);
@@ -162,6 +183,11 @@ function configureUserAgent() {
 }
 
 function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
+  // Transparency is opt-in and never enabled on macOS (it caused issues there).
+  const transparent =
+    process.platform !== "darwin" &&
+    settingsStore?.get<string, boolean>(settings.windowTransparency);
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     x: options.x,
@@ -171,7 +197,7 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     icon,
     backgroundColor: options.backgroundColor,
     autoHideMenuBar: true,
-    transparent: process.platform !== "darwin",
+    transparent,
     webPreferences: {
       ...windowPreferences,
       ...{
@@ -180,7 +206,6 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     },
   });
 
-  enable(mainWindow.webContents);
   registerHttpProtocols();
   syncMenuBarWithStore();
   configureUserAgent();
@@ -226,15 +251,30 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     gracefulExit();
   });
   mainWindow.on("resize", () => {
+    // Don't persist maximized/full-screen bounds, otherwise the restored
+    // (un-maximized) size gets overwritten with the maximized dimensions.
+    if (mainWindow.isMaximized() || mainWindow.isFullScreen()) {
+      return;
+    }
     const { width, height } = mainWindow.getBounds();
     settingsStore.set(settings.windowBounds.root, { width, height });
   });
+
+  // Transparent windows on Linux (X11/Wayland) don't maximize to fill the
+  // screen, they stop at a smaller "limit" (see issue #866). Force the window
+  // to the display's work area when maximized to work around this.
+  if (process.platform === "linux" && transparent) {
+    mainWindow.on("maximize", () => {
+      const { workArea } = screen.getDisplayMatching(mainWindow.getBounds());
+      mainWindow.setBounds(workArea);
+    });
+  }
   mainWindow.webContents.setWindowOpenHandler(() => {
     return {
       action: "allow",
       overrideBrowserWindowOptions: {
         webPreferences: {
-          sandbox: false,
+          sandbox: !sandboxDisabled,
           plugins: true,
           devTools: true, // I like tinkering, others might too
         },
@@ -334,10 +374,6 @@ app.on("before-quit", () => {
   performCleanup();
 });
 
-app.on("browser-window-created", (_, window) => {
-  enable(window.webContents);
-});
-
 // IPC
 ipcMain.on(globalEvents.updateInfo, (_event, arg: MediaInfo) => {
   updateMediaInfo(arg);
@@ -376,12 +412,25 @@ ipcMain.on(globalEvents.resetZoom, () => {
   mainWindow.webContents.setZoomFactor(1.0);
 });
 
+ipcMain.on(globalEvents.hardReload, (event) => {
+  event.sender.reloadIgnoringCache();
+});
+
 ipcMain.on(globalEvents.refreshMenuBar, () => {
   syncMenuBarWithStore();
 });
 
 ipcMain.on(globalEvents.storeChanged, () => {
   syncMenuBarWithStore();
+
+  // Re-inject theme + custom CSS only when it actually changed, so appearance
+  // changes apply live without flickering the window on unrelated settings.
+  injectThemeCssIfChanged(app, mainWindow.webContents);
+  refreshSettingsWindowTheme();
+
+  // Notify the main renderer so it can re-apply settings that are otherwise only
+  // read at startup (hotkeys, window title).
+  mainWindow.webContents.send(globalEvents.storeChanged);
 
   if (settingsStore.get(settings.enableDiscord) && !rpc) {
     initRPC();

@@ -3,7 +3,7 @@ import type { Request, Router } from "express";
 
 import { globalEvents } from "../../../constants/globalEvents";
 import { settings } from "../../../constants/settings";
-import { settingsStore } from "../../../scripts/settings";
+import { settingsStore } from "../../../scripts/settingsStore";
 import { handleWindowEvent } from "../helpers/handleWindowEvent";
 
 const parseNumberParam = (value: unknown, defaultValue: number = 0): number => {

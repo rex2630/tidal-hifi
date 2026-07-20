@@ -1,0 +1,57 @@
+// ============================================================================
+// Aura Dracula Spirit (Soft) Theme for TIDAL Hi-Fi
+// ============================================================================
+// Color palette derived from the "Aura Dracula Spirit (Soft)" scheme:
+// signature purple (#a277ff), mint green (#61ffca), pink (#f694ff),
+// soft orange (#ffca85) and soft red (#ff6767) on deep violet backgrounds.
+// ============================================================================
+
+@use "base" with (
+  $bg-main: #191521,
+  $bg-secondary: #14111b,
+  $bg-surface: #2e2b38,
+  $bg-elevated: #3b334b,
+  $bg-hover: #3d375e,
+  $bg-selection: #3d375e,
+
+  $text-primary: #edecee,
+  $text-secondary: #cdccce,
+  $text-muted: #776882,
+  $text-faint: #575167,
+
+  $accent-primary: #a277ff,
+  $accent-green: #61ffca,
+  $accent-red: #ff6767,
+  $accent-blue: #a277ff,
+  $accent-purple: #a277ff,
+  $accent-cyan: #61ffca,
+  $accent-yellow: #ffca85,
+
+  $border-subtle: #2e2b38,
+  $border-dim: #3b334b
+);
+
+@use "base-new" with (
+  $bg-main: #191521,
+  $bg-secondary: #14111b,
+  $bg-surface: #2e2b38,
+  $bg-elevated: #3b334b,
+  $bg-hover: #3d375e,
+  $bg-selection: #3d375e,
+
+  $text-primary: #edecee,
+  $text-secondary: #cdccce,
+  $text-muted: #776882,
+  $text-faint: #575167,
+
+  $accent-primary: #a277ff,
+  $accent-green: #61ffca,
+  $accent-red: #ff6767,
+  $accent-blue: #a277ff,
+  $accent-purple: #a277ff,
+  $accent-cyan: #61ffca,
+  $accent-yellow: #ffca85,
+
+  $border-subtle: #2e2b38,
+  $border-dim: #3b334b
+);

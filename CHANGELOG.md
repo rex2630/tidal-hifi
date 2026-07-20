@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.0.0]
+
+### added
+
+- artist skipping is now case insensitive
+- more settings apply live, including theme switching 🥳
+- Everforest theme added by [Ble4K](https://github.com/Ble4K)
+- opt-in window transparency
+
+### changed
+
+- Migrated from Biome back to oxlint (linting) and Prettier (formatting)
+
+### fixes
+
+- added proper `seeked` updates to mpris when actual and expected playtime differ
+- multi artists tracks now report all artists in MPRIS, API & discord thanks to [AleksandarN-BG](https://github.com/AleksandarN-BG)
+- hard reload now bypasses caching, fixes [#956](https://github.com/Mastermindzh/tidal-hifi/issues/956) by [floze-the-genius](https://github.com/floze-the-genius)
+- transparent window now maximizes to fill the whole screen on Linux, fixes [#866](https://github.com/Mastermindzh/tidal-hifi/issues/866)
+- ListenBrainz scrobbling is now more resilient: requests time out and retry transient network errors ("socket hang up"), and an unknown track duration is no longer sent as `0` (which the API rejected with HTTP 400)
+
+### Security
+
+- Context isolated both the main and the settings window, and removed `@electron/remote` entirely. Privileged actions (dialogs, notifications, album art, theme listing/uploads, tray-icon checks, external links) now go through a small IPC bridge instead of running directly in the page.
+  - Disabling the "skip" sandbox option in the settings **will** sandbox the entire app; if your system isn't set up properly it won't launch anymore.
+- Themes can no longer be used to read arbitrary files: theme paths are validated and confined to the themes directory.
+
+### Themes
+
+- Added the "Aura Dracula Spirit Soft" theme.
+
 ## [7.0.1]
 
 - Added correct version info into about section

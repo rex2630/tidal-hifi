@@ -1,5 +1,5 @@
 import { settings } from "../../constants/settings";
-import { settingsStore } from "../../scripts/settings";
+import { settingsStore } from "../../scripts/settingsStore";
 
 export const tidalUrl =
   settingsStore.get<string, string>(settings.advanced.tidalUrl) || "https://tidal.com";

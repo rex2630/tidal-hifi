@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "TIDAL Hi-Fi API",
-    "version": "7.0.0",
+    "version": "8.0.0",
     "description": "",
     "license": {
       "name": "MIT",
@@ -18,35 +18,16 @@
     "url": "swagger.json"
   },
   "paths": {
-    "/current": {
+    "/image": {
       "get": {
-        "summary": "Get current media info",
+        "summary": "Get current image",
         "tags": [
-          "current"
+          "legacy"
         ],
+        "deprecated": true,
         "responses": {
           "200": {
-            "description": "Current media info",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MediaInfo"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/current/image": {
-      "get": {
-        "summary": "Get current media image",
-        "tags": [
-          "current"
-        ],
-        "responses": {
-          "200": {
-            "description": "Current media image",
+            "description": "Current image",
             "content": {
               "image/png": {
                 "schema": {
@@ -62,85 +43,125 @@
         }
       }
     },
-    "/current/audio-quality": {
+    "/play": {
       "get": {
-        "summary": "Get audio quality info for the current track",
-        "description": "Returns whatever audio quality info the active controller can read from\nTidal: at minimum the quality tier from the on-screen badge; additionally\nbit depth, sample rate and codec when the Redux controller is active.\nReturns 404 when no quality information is currently available.\n",
+        "summary": "Play the current media",
         "tags": [
-          "current"
+          "legacy"
         ],
+        "deprecated": true,
         "responses": {
           "200": {
-            "description": "Audio quality info for the current track",
+            "description": "Action performed",
             "content": {
-              "application/json": {
+              "text/plain": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "quality": {
-                      "type": "string"
-                    },
-                    "badgeText": {
-                      "type": "string"
-                    },
-                    "bitDepth": {
-                      "type": "integer"
-                    },
-                    "sampleRate": {
-                      "type": "integer"
-                    },
-                    "codec": {
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/components/schemas/OkResponse"
                 }
               }
             }
-          },
-          "404": {
-            "description": "No audio quality information available"
           }
         }
       }
     },
-    "/health": {
+    "/favorite/toggle": {
       "get": {
+        "summary": "Add the current media to your favorites, or remove it if its already added to your favorites",
         "tags": [
-          "Health"
+          "legacy"
         ],
-        "summary": "Health check endpoint",
-        "description": "Returns the health status of the Tidal Hi-Fi API service",
+        "deprecated": true,
         "responses": {
           "200": {
-            "description": "Service is healthy",
+            "description": "Ok",
             "content": {
-              "application/json": {
+              "text/plain": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "healthy"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time",
-                      "example": "2025-12-27T10:00:00.000Z"
-                    },
-                    "uptime": {
-                      "type": "number",
-                      "description": "Process uptime in seconds",
-                      "example": 12345.67
-                    },
-                    "version": {
-                      "type": "string",
-                      "example": "6.1.0"
-                    },
-                    "service": {
-                      "type": "string",
-                      "example": "tidal-hifi-api"
-                    }
-                  }
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pause": {
+      "get": {
+        "summary": "Pause the current media",
+        "tags": [
+          "legacy"
+        ],
+        "deprecated": true,
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/next": {
+      "get": {
+        "summary": "Play the next song",
+        "tags": [
+          "legacy"
+        ],
+        "deprecated": true,
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/previous": {
+      "get": {
+        "summary": "Play the previous song",
+        "tags": [
+          "legacy"
+        ],
+        "deprecated": true,
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/playpause": {
+      "get": {
+        "summary": "Toggle play/pause",
+        "tags": [
+          "legacy"
+        ],
+        "deprecated": true,
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
                 }
               }
             }
@@ -405,6 +426,136 @@
         }
       }
     },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check endpoint",
+        "description": "Returns the health status of the Tidal Hi-Fi API service",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-12-27T10:00:00.000Z"
+                    },
+                    "uptime": {
+                      "type": "number",
+                      "description": "Process uptime in seconds",
+                      "example": 12345.67
+                    },
+                    "version": {
+                      "type": "string",
+                      "example": "6.1.0"
+                    },
+                    "service": {
+                      "type": "string",
+                      "example": "tidal-hifi-api"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/current": {
+      "get": {
+        "summary": "Get current media info",
+        "tags": [
+          "current"
+        ],
+        "responses": {
+          "200": {
+            "description": "Current media info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/current/image": {
+      "get": {
+        "summary": "Get current media image",
+        "tags": [
+          "current"
+        ],
+        "responses": {
+          "200": {
+            "description": "Current media image",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/current/audio-quality": {
+      "get": {
+        "summary": "Get audio quality info for the current track",
+        "description": "Returns whatever audio quality info the active controller can read from\nTidal: at minimum the quality tier from the on-screen badge; additionally\nbit depth, sample rate and codec when the Redux controller is active.\nReturns 404 when no quality information is currently available.\n",
+        "tags": [
+          "current"
+        ],
+        "responses": {
+          "200": {
+            "description": "Audio quality info for the current track",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "quality": {
+                      "type": "string"
+                    },
+                    "badgeText": {
+                      "type": "string"
+                    },
+                    "bitDepth": {
+                      "type": "integer"
+                    },
+                    "sampleRate": {
+                      "type": "integer"
+                    },
+                    "codec": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No audio quality information available"
+          }
+        }
+      }
+    },
     "/settings/skipped-artists": {
       "get": {
         "summary": "get a list of artists that TIDAL Hi-Fi will skip if skipping is enabled",
@@ -580,161 +731,14 @@
           }
         }
       }
-    },
-    "/image": {
-      "get": {
-        "summary": "Get current image",
-        "tags": [
-          "legacy"
-        ],
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Current image",
-            "content": {
-              "image/png": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found"
-          }
-        }
-      }
-    },
-    "/play": {
-      "get": {
-        "summary": "Play the current media",
-        "tags": [
-          "legacy"
-        ],
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Action performed",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/favorite/toggle": {
-      "get": {
-        "summary": "Add the current media to your favorites, or remove it if its already added to your favorites",
-        "tags": [
-          "legacy"
-        ],
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Ok",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/pause": {
-      "get": {
-        "summary": "Pause the current media",
-        "tags": [
-          "legacy"
-        ],
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Ok",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/next": {
-      "get": {
-        "summary": "Play the next song",
-        "tags": [
-          "legacy"
-        ],
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Ok",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/previous": {
-      "get": {
-        "summary": "Play the previous song",
-        "tags": [
-          "legacy"
-        ],
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Ok",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/playpause": {
-      "get": {
-        "summary": "Toggle play/pause",
-        "tags": [
-          "legacy"
-        ],
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Ok",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkResponse"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
     "schemas": {
+      "OkResponse": {
+        "type": "string",
+        "example": "OK"
+      },
       "MediaInfo": {
         "type": "object",
         "properties": {
@@ -858,10 +862,6 @@
           "artist": "Sample Artist"
         }
       },
-      "OkResponse": {
-        "type": "string",
-        "example": "OK"
-      },
       "StringArray": {
         "type": "array",
         "items": {
@@ -876,12 +876,12 @@
   },
   "tags": [
     {
-      "name": "current",
-      "description": "The current media info API"
-    },
-    {
       "name": "player",
       "description": "The player control API"
+    },
+    {
+      "name": "current",
+      "description": "The current media info API"
     },
     {
       "name": "settings",
