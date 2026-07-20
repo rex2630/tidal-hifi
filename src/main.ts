@@ -1,6 +1,6 @@
 import path from "node:path";
 import { initialize } from "@electron/remote/main";
-import { app, BrowserWindow, components, ipcMain, session } from "electron";
+import { app, BrowserWindow, components, ipcMain, screen, session } from "electron";
 
 import { globalEvents } from "./constants/globalEvents";
 import { settings } from "./constants/settings";
@@ -183,6 +183,11 @@ function configureUserAgent() {
 }
 
 function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
+  // Transparency is opt-in and never enabled on macOS (it caused issues there).
+  const transparent =
+    process.platform !== "darwin" &&
+    settingsStore?.get<string, boolean>(settings.windowTransparency);
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     x: options.x,
@@ -192,7 +197,7 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     icon,
     backgroundColor: options.backgroundColor,
     autoHideMenuBar: true,
-    transparent: process.platform !== "darwin",
+    transparent,
     webPreferences: {
       ...windowPreferences,
       ...{
@@ -246,9 +251,24 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     gracefulExit();
   });
   mainWindow.on("resize", () => {
+    // Don't persist maximized/full-screen bounds, otherwise the restored
+    // (un-maximized) size gets overwritten with the maximized dimensions.
+    if (mainWindow.isMaximized() || mainWindow.isFullScreen()) {
+      return;
+    }
     const { width, height } = mainWindow.getBounds();
     settingsStore.set(settings.windowBounds.root, { width, height });
   });
+
+  // Transparent windows on Linux (X11/Wayland) don't maximize to fill the
+  // screen, they stop at a smaller "limit" (see issue #866). Force the window
+  // to the display's work area when maximized to work around this.
+  if (process.platform === "linux" && transparent) {
+    mainWindow.on("maximize", () => {
+      const { workArea } = screen.getDisplayMatching(mainWindow.getBounds());
+      mainWindow.setBounds(workArea);
+    });
+  }
   mainWindow.webContents.setWindowOpenHandler(() => {
     return {
       action: "allow",

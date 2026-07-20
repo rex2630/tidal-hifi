@@ -80,6 +80,7 @@ let adBlock: HTMLInputElement,
   trayIcon: HTMLInputElement,
   trayIconPath: HTMLInputElement,
   updateFrequency: HTMLInputElement,
+  windowTransparency: HTMLInputElement,
   enableListenBrainz: HTMLInputElement,
   ListenBrainzAPI: HTMLInputElement,
   ListenBrainzToken: HTMLInputElement,
@@ -257,7 +258,7 @@ function refreshSettings() {
     theme.value = settingsStore.get(settings.theme);
     trayIcon.checked = settingsStore.get(settings.trayIcon);
     trayIconPath.value = settingsStore.get(settings.trayIconPath) || "";
-
+    windowTransparency.checked = settingsStore.get(settings.windowTransparency);
     // Validate tray icon path on load
     const validationElement = document.getElementById("trayIconPathValidation");
     if (validationElement) {
@@ -438,6 +439,7 @@ window.addEventListener("DOMContentLoaded", () => {
   discord_idle_text = get("discord_idle_text");
   userAgent = get("userAgent");
   controllerType = get<HTMLSelectElement>("controllerType");
+  windowTransparency = get("windowTransparency");
 
   refreshSettings();
   addInputListener(adBlock, settings.adBlock);
@@ -471,6 +473,7 @@ window.addEventListener("DOMContentLoaded", () => {
   addInputListener(trayIcon, settings.trayIcon, switchesWithSettings.tray);
   addTrayIconPathListener(trayIconPath, settings.trayIconPath);
   addInputListener(updateFrequency, settings.updateFrequency);
+  addInputListener(windowTransparency, settings.windowTransparency);
   addInputListener(
     enableListenBrainz,
     settings.ListenBrainz.enabled,

@@ -89,6 +89,7 @@ const defaultSettings = {
   trayIcon: true,
   trayIconPath: "",
   updateFrequency: 500,
+  windowTransparency: false,
   windowBounds: { width: 800, height: 600 },
 };
 
@@ -175,6 +176,9 @@ const migrations: NonNullable<Store.Options<typeof defaultSettings>["migrations"
       migrationStore.set(settings.theme, `builtin:${currentTheme}`);
       log(`  - migrated theme "${currentTheme}" to "builtin:${currentTheme}"`);
     }
+  },
+  "8.0.0": (migrationStore) => {
+    buildMigration("8.0.0", migrationStore, [{ key: settings.windowTransparency, value: false }]);
   },
 };
 

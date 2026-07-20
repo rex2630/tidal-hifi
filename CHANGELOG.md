@@ -11,12 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - artist skipping is now case insensitive
 - more settings apply live, including theme switching 🥳
 - Everforest theme added by [Ble4K](https://github.com/Ble4K)
+- opt-in window transparency
 
 ### fixes
 
 - added proper `seeked` updates to mpris when actual and expected playtime differ
 - multi artists tracks now report all artists in MPRIS, API & discord thanks to [AleksandarN-BG](https://github.com/AleksandarN-BG)
 - hard reload now bypasses caching, fixes [#956](https://github.com/Mastermindzh/tidal-hifi/issues/956) by [floze-the-genius](https://github.com/floze-the-genius)
+- transparent window now maximizes to fill the whole screen on Linux, fixes [#866](https://github.com/Mastermindzh/tidal-hifi/issues/866)
 
 ### Security
 
