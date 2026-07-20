@@ -3,12 +3,28 @@ permissions:
   contents: write
 on:
   push:
-    branches:
-      - master
+    tags:
+      - "*"
   workflow_dispatch:
 
 jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: update apt
+        run: sudo apt-get update
+      - name: Install libarchive-tools
+        run: sudo apt-get install -y libarchive-tools
+      - uses: actions/checkout@master
+      - uses: actions/setup-node@master
+        with:
+          node-version: 24.12.0
+      - run: npm install
+      - run: npm run lint
+      - run: npm run compile
+
   build_on_linux:
+    needs: quality
     runs-on: ubuntu-latest
     steps:
       - name: update apt
@@ -33,6 +49,7 @@ jobs:
           path: dist/
 
   build_on_mac:
+    needs: quality
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@master
@@ -52,6 +69,7 @@ jobs:
           path: dist/
 
   build_on_windows:
+    needs: quality
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@master
@@ -66,8 +84,9 @@ jobs:
           path: dist/*.msi
 
   build_and_publish_snap:
+    needs: quality
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: update apt
         run: sudo apt-get update
@@ -95,15 +114,12 @@ jobs:
           path: dist/*.snap
 
   create_release:
+    if: startsWith(github.ref, 'refs/tags/')
     needs:
       [build_on_linux, build_on_mac, build_on_windows, build_and_publish_snap]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-
-      - name: Get version from package.json
-        id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
       - uses: actions/download-artifact@v4
         with:
@@ -115,8 +131,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: ${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           generate_release_notes: true
           files: |
             artifacts/linux-builds/*.deb
@@ -135,7 +151,7 @@ jobs:
   publish_aur:
     needs: create_release
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: startsWith(github.ref, 'refs/tags/')
     env:
       AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
     steps:
@@ -145,14 +161,9 @@ jobs:
         if: env.AUR_SSH_PRIVATE_KEY == ''
         run: echo "AUR_SSH_PRIVATE_KEY is not configured; skipping AUR publish."
 
-      - name: Get version from package.json
-        if: env.AUR_SSH_PRIVATE_KEY != ''
-        id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-
       - name: Generate AUR package files
         if: env.AUR_SSH_PRIVATE_KEY != ''
-        run: ./scripts/generate-aur-package.sh "${{ steps.version.outputs.version }}" "${{ github.sha }}"
+        run: ./scripts/generate-aur-package.sh "${{ github.ref_name }}" "${{ github.sha }}"
 
       - name: Publish tidal-hifi-git to AUR
         if: env.AUR_SSH_PRIVATE_KEY != ''
@@ -168,5 +179,5 @@ jobs:
           commit_username: tidal-hifi release bot
           commit_email: info@rickvanlieshout.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: Update tidal-hifi-git to ${{ steps.version.outputs.version }}
+          commit_message: Update tidal-hifi-git to ${{ github.ref_name }}
           ssh_keyscan_types: rsa,ecdsa,ed25519
