@@ -1,6 +1,5 @@
 import { getUniversalLink } from "../tidal/url";
 
-// biome-ignore lint/complexity/noStaticOnlyClass: off
 export class SharingService {
   /**
    * Retrieve the universal link given a regular track link

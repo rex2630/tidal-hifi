@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { app, type IpcMainEvent, type IpcMainInvokeEvent, ipcMain, shell } from "electron";
+import { app, ipcMain, shell, type IpcMainEvent, type IpcMainInvokeEvent } from "electron";
 
 import { settingsBridgeChannels } from "../../constants/bridge";
 import { Logger } from "../logger";

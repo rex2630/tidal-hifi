@@ -8,7 +8,6 @@ import { constrainPollingInterval } from "../../utility/pollingConstraints";
 import { Logger } from "../logger";
 import { tidalUrl } from "../tidal/url";
 
-// biome-ignore lint/complexity/noStaticOnlyClass: off
 export class ListenBrainz {
   // Internal state for tracking scrobbling
   private static currentTrackKey = "";

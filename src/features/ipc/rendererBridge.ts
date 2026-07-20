@@ -1,5 +1,5 @@
 import path from "node:path";
-import { app, clipboard, dialog, type IpcMainInvokeEvent, ipcMain, Notification } from "electron";
+import { app, clipboard, dialog, ipcMain, Notification, type IpcMainInvokeEvent } from "electron";
 
 import { bridgeChannels } from "../../constants/bridge";
 import { downloadImage } from "../icon/downloadImage";

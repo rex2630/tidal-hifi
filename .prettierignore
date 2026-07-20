@@ -1,0 +1,20 @@
+# Build output
+
+ts-dist
+dist
+build
+
+## Dependencies
+
+node_modules
+
+## Generated / vendored files
+
+package-lock.json
+src/features/api/swagger.json
+scripts/verifyElements.js
+
+## Handled by other formatters
+
+themes/*.css
+src/pages/settings/styles/settings.css

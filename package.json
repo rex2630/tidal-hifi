@@ -26,9 +26,10 @@
     "build-mac": "npm run builder -- -c ./build/electron-builder.yml -m",
     "build-base": "npm run builder -- -c ./build/electron-builder.base.yml",
     "prebuilder": "npm run compile",
-    "format": "biome format --write .",
-    "lint": "biome check .",
-    "lint-fix": "biome check --write .",
+    "format": "prettier --write \"**/*.{ts,js,mjs,cjs,json,jsonc}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,mjs,cjs,json,jsonc}\"",
+    "lint": "oxlint && npm run format:check",
+    "lint-fix": "oxlint --fix && npm run format",
     "builder": "electron-builder --publish=never",
     "sass": "sass src/pages/settings/styles/settings.scss ./src/pages/settings/styles/settings.css && sass --no-source-map src/themes:themes"
   },
@@ -57,7 +58,7 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.16",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.2",
@@ -70,6 +71,8 @@
     "markdown-toc": "^1.2.0",
     "node-abi": "^4.31.0",
     "nodemon": "^3.1.14",
+    "oxlint": "^1.74.0",
+    "prettier": "^3.9.5",
     "swagger-jsdoc": "^6.2.8",
     "ts-node": "^10.9.2",
     "tsc-watch": "^7.2.0",

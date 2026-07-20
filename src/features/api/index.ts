@@ -1,5 +1,5 @@
 import cors from "cors";
-import { type BrowserWindow, dialog } from "electron";
+import { dialog, type BrowserWindow } from "electron";
 import express from "express";
 import swaggerUi from "swagger-ui-express";
 

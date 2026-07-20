@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Everforest theme added by [Ble4K](https://github.com/Ble4K)
 - opt-in window transparency
 
+### changed
+
+- Migrated from Biome back to oxlint (linting) and Prettier (formatting)
+
 ### fixes
 
 - added proper `seeked` updates to mpris when actual and expected playtime differ
