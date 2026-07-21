@@ -198,9 +198,14 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     width: settingsStore?.get(settings.windowBounds.width),
     height: settingsStore?.get(settings.windowBounds.height),
     icon,
-    backgroundColor: options.backgroundColor,
+    backgroundColor: useTransparentWindow ? "#00000000" : options.backgroundColor,
     autoHideMenuBar: true,
-    transparent,
+    transparent: useTransparentWindow,
+    ...(useFramelessOnWindows && { frame: false }),
+    ...(useMacTitleBarStyle && {
+      titleBarStyle: "hiddenInset",
+      vibrancy: "appearance-based",
+    }),
     webPreferences: {
       ...windowPreferences,
       ...{
@@ -216,8 +221,11 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
 
   // Inject theme CSS via Chromium-level insertCSS on every page load.
   // This survives SPA hydration / DOM replacement that wipes preload-injected <style> elements.
-  mainWindow.webContents.on("did-finish-load", () => {
-    injectThemeCss(app, mainWindow.webContents);
+  mainWindow.webContents.on("did-finish-load", async () => {
+    await injectThemeCss(app, mainWindow.webContents);
+    if (useTransparentWindow) {
+      await injectWindowDragCss(mainWindow.webContents);
+    }
   });
 
   // find the custom protocol argument
