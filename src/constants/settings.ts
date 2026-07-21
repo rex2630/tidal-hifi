@@ -68,7 +68,6 @@ export const settings = {
   startMinimized: "startMinimized",
   staticWindowTitle: "staticWindowTitle",
   theme: "theme",
-  transparentWindow: "transparentWindow",
   trayIcon: "trayIcon",
   trayIconPath: "trayIconPath",
   updateFrequency: "updateFrequency",
