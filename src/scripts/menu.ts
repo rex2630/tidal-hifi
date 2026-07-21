@@ -18,7 +18,7 @@ const settingsMenuEntry = {
 const tidalMagazineEntry = {
   label: "Magazine",
   click() {
-    const useTransparentWindow = !settingsStore.get(settings.transparentWindow);
+    const useTransparentWindow = !settingsStore.get(settings.windowTransparency);
 
     const magazineWindow = new BrowserWindow({
       transparent: useTransparentWindow,
