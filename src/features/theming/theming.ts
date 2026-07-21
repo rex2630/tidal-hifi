@@ -241,3 +241,23 @@ export async function injectThemeCssIfChanged(
   }
   await injectThemeCss(app, webContents);
 }
+
+export async function injectWindowDragCss(webContents: Electron.WebContents) {
+  try {
+    await webContents.insertCSS(`
+      html, body {
+        background-color: transparent !important;
+        -webkit-app-region: drag !important;
+      }
+
+      button, a, input, textarea, select, summary, details,
+      [role="button"], [role="link"], [role="menuitem"], [role="tab"],
+      [role="option"], [role="checkbox"], [role="radio"], [role="switch"],
+      video, iframe, svg, path, rect, circle, polygon {
+        -webkit-app-region: no-drag !important;
+      }
+    `);
+  } catch (error) {
+    Logger.log("Failed to inject drag-region CSS", error);
+  }
+}
