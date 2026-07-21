@@ -18,7 +18,7 @@ import { Logger } from "./features/logger";
 import { addAltKeyMenuBarHandler } from "./features/menuBar/altMenuBar";
 import { MprisService } from "./features/mpris/mprisService";
 import { SharingService } from "./features/sharingService/sharingService";
-import { injectThemeCss, injectThemeCssIfChanged } from "./features/theming/theming";
+import { injectThemeCss, injectThemeCssIfChanged, injectWindowDragCss } from "./features/theming/theming";
 import { tidalUrl } from "./features/tidal/url";
 import type { MediaInfo } from "./models/mediaInfo";
 import { MediaStatus } from "./models/mediaStatus";
