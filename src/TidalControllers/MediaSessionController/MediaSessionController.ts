@@ -151,12 +151,14 @@ export class MediaSessionController implements TidalController<MediaSessionContr
   }
 
   getArtists(): string[] {
-    const artist = navigator.mediaSession?.metadata?.artist;
-    return artist ? [artist] : [""];
+    // navigator.mediaSession.metadata.artist only carries the primary artist, so read the
+    // full list from the DOM instead (the footer lists every credited artist).
+    return this.fallbackDomController.getArtists();
   }
 
   getArtistsString(): string {
-    return navigator.mediaSession?.metadata?.artist || "";
+    // Join all credited artists (the MediaSession metadata exposes only the first one).
+    return this.fallbackDomController.getArtistsString();
   }
 
   getSongIcon(): string {

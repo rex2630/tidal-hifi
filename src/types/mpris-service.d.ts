@@ -47,7 +47,7 @@ declare class Player extends NodeJS.EventEmitter {
   constructor(opts: InitOptions);
 
   getPosition(): number;
-  seeked(): void;
+  seeked(position: number): void;
   getTrackIndex(trackId: number): number;
   getTrack(trackId: number): string;
   addTrack(track: object): void;

@@ -1,10 +1,10 @@
 import { existsSync } from "node:fs";
-import { type BrowserWindow, Tray } from "electron";
+import { Tray, type BrowserWindow } from "electron";
 
 import { settings } from "../constants/settings";
 import { SUPPORTED_TRAY_ICON_EXTENSIONS } from "../constants/trayIcon";
 import { getMenu } from "./menu";
-import { settingsStore } from "./settings";
+import { settingsStore } from "./settingsStore";
 
 let tray: Tray;
 

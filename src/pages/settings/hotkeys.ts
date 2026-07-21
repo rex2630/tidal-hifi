@@ -4,11 +4,11 @@ import { globalEvents } from "../../constants/globalEvents";
 import {
   DEFAULT_HOTKEY_ACTIONS,
   getCurrentHotkeyConfig,
-  type HotkeyAction,
   isKeyInUse,
   resetHotkeyToDefault,
   setHotkeyForAction,
   validateKeyBinding,
+  type HotkeyAction,
 } from "../../features/hotkeys";
 
 let hotkeySearch: HTMLInputElement;

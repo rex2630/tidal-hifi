@@ -6,20 +6,24 @@ This document lists known bugs and issues with Tidal Hi-Fi along with workaround
 
 <!-- toc -->
 
-- [Known Issues](#known-issues)
-  - [Table of Contents](#table-of-contents)
-  - [White screen on login/launch](#white-screen-on-loginlaunch)
-    - [Advanced setting](#advanced-setting)
-  - [Subscribe button showing and/or account details not working](#subscribe-button-showing-andor-account-details-not-working)
-  - [DRM not working on Windows (error S6007)](#drm-not-working-on-windows-error-s6007)
-  - [Discord RPC not working with Flatpak and native Discord](#discord-rpc-not-working-with-flatpak-and-native-discord)
-  - [Discord RPC not working between Flatpaks (TIDAL Hi-Fi + Discord/Vesktop)](#discord-rpc-not-working-between-flatpaks-tidal-hi-fi--discordvesktop)
-  - [Volume resets on restart](#volume-resets-on-restart)
-  - [Audio quality](#audio-quality)
+- [Disable-sandboxing](#disable-sandboxing)
+- [White/Gray screen on login/launch](#whitegray-screen-on-loginlaunch)
+  - [Advanced setting](#advanced-setting)
+- [Subscribe button showing and/or account details not working](#subscribe-button-showing-andor-account-details-not-working)
+- [DRM not working on Windows (error S6007)](#drm-not-working-on-windows-error-s6007)
+- [Discord RPC not working with Flatpak and native Discord](#discord-rpc-not-working-with-flatpak-and-native-discord)
+- [Discord RPC not working between Flatpaks (TIDAL Hi-Fi + Discord/Vesktop)](#discord-rpc-not-working-between-flatpaks-tidal-hi-fi--discordvesktop)
+- [Volume resets on restart](#volume-resets-on-restart)
+- [Audio quality](#audio-quality)
 
 <!-- tocstop -->
 
-## White screen on login/launch
+## Disable-sandboxing
+
+Various issues can be solved by disabling the sandbox, to do so simply pass `--no-sandbox` to `tidal-hifi`.
+You are disabling [some security concerns](https://www.electronjs.org/docs/latest/tutorial/sandbox), you should be aware of that.
+
+## White/Gray screen on login/launch
 
 Some users may experience a white screen when launching Tidal Hi-Fi or during the login process. This is typically caused by security restrictions in the underlying Chromium engine. You can disable it permanently in the settings or following the steps below:
 
@@ -38,7 +42,7 @@ For different installation methods:
 ### Advanced setting
 
 Under "Advanced" in the settings menu you'll find a section to toggle flags, there you can also toggle the sandbox flag.
-The default value of this flag is "true", which means the sandbox is disabled.
+The default value of this flag is "true", which means the sandbox is disabled. Though note, this might not always work, if not use `--no-sandbox`.
 
 ![The flag as shown in the settings window](./images/disable-sandbox.png)
 

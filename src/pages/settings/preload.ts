@@ -1,15 +1,18 @@
-import fs from "node:fs";
-import path from "node:path";
-import { app } from "@electron/remote";
-import { ipcRenderer, shell } from "electron";
+import { ipcRenderer } from "electron";
 
+import { settingsBridgeChannels } from "../../constants/bridge";
 import { globalEvents } from "../../constants/globalEvents";
 import { settings } from "../../constants/settings";
 import { SUPPORTED_TRAY_ICON_EXTENSIONS } from "../../constants/trayIcon";
 import { Logger } from "../../features/logger";
-import { settingsStore } from "../../scripts/settings";
+import { settingsStore } from "../../scripts/settingsStore";
 import { initializeHotkeys } from "./hotkeys";
-import { cssFilter, getOptions, getOptionsHeader, getThemeListFromDirectory } from "./theming";
+import { cssFilter, getOptions, getOptionsHeader } from "./theming";
+
+interface ThemeList {
+  builtIn: string[];
+  user: string[];
+}
 
 // All switches on the settings screen that show additional options based on their state
 const switchesWithSettings = {
@@ -78,6 +81,7 @@ let adBlock: HTMLInputElement,
   trayIconPath: HTMLInputElement,
   transparentWindow: HTMLInputElement,
   updateFrequency: HTMLInputElement,
+  windowTransparency: HTMLInputElement,
   enableListenBrainz: HTMLInputElement,
   ListenBrainzAPI: HTMLInputElement,
   ListenBrainzToken: HTMLInputElement,
@@ -93,26 +97,19 @@ let adBlock: HTMLInputElement,
   userAgent: HTMLInputElement,
   controllerType: HTMLSelectElement;
 
-function getThemeFiles() {
+async function getThemeFiles() {
   const selectElement = document.getElementById("themesList") as HTMLSelectElement;
-  const builtInThemes = getThemeListFromDirectory(`${process.resourcesPath}/themes`, true).concat(
-    getThemeListFromDirectory(path.join(__dirname, "..", "..", "..", "themes"), true),
-  );
-  // deduplicate in case both paths resolve to the same directory
-  const uniqueBuiltIn = [...new Set(builtInThemes)].sort((a, b) =>
-    a.toLowerCase().localeCompare(b.toLowerCase()),
-  );
-  const userThemes = getThemeListFromDirectory(`${app.getPath("userData")}/themes`);
+  const { builtIn, user }: ThemeList = await ipcRenderer.invoke(settingsBridgeChannels.listThemes);
 
   let allThemes = [
     getOptionsHeader("Built-in Themes"),
     new Option("Tidal - Default", "none"),
-  ].concat(getOptions(uniqueBuiltIn, "builtin"));
+  ].concat(getOptions(builtIn, "builtin"));
 
-  if (userThemes.length >= 1) {
+  if (user.length >= 1) {
     allThemes = allThemes
       .concat([getOptionsHeader("User Themes")])
-      .concat(getOptions(userThemes, "user"));
+      .concat(getOptions(user, "user"));
   }
 
   // empty old options
@@ -124,6 +121,9 @@ function getThemeFiles() {
   allThemes.forEach((option) => {
     selectElement.add(option, null);
   });
+
+  // re-apply the stored selection now that the options exist
+  selectElement.value = settingsStore.get(settings.theme);
 }
 
 function handleFileUploads() {
@@ -143,17 +143,17 @@ function handleFileUploads() {
       fileMessage.classList.remove("hidden");
       return;
     }
-    for (const file of newThemes as File[]) {
-      const destination = `${app.getPath("userData")}/themes/${file.name}`;
-
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      fs.writeFileSync(destination, buffer);
-      Logger.log("written file!", { destination });
-    }
+    const payload = await Promise.all(
+      newThemes.map(async (file) => ({
+        name: file.name,
+        data: new Uint8Array(await file.arrayBuffer()),
+      })),
+    );
+    await ipcRenderer.invoke(settingsBridgeChannels.uploadThemes, payload);
+    Logger.log("uploaded themes", { count: payload.length });
     fileMessage.innerText = `${e.target.files.length} files successfully uploaded`;
     fileMessage.classList.remove("hidden");
-    getThemeFiles();
+    await getThemeFiles();
   });
 }
 
@@ -179,6 +179,9 @@ function setElementHidden(
  * @returns true if valid
  */
 function validateTrayIconPath(path: string, validationElement: HTMLElement | null): boolean {
+  const trayIconExists = (candidate: string): boolean =>
+    ipcRenderer.sendSync(settingsBridgeChannels.trayIconExists, candidate);
+
   if (!validationElement) {
     // If validation element doesn't exist, still validate but don't show UI feedback
     const trimmedPath = path.trim();
@@ -187,7 +190,7 @@ function validateTrayIconPath(path: string, validationElement: HTMLElement | nul
     }
     const lowerPath = trimmedPath.toLowerCase();
     const hasValidExtension = SUPPORTED_TRAY_ICON_EXTENSIONS.some((ext) => lowerPath.endsWith(ext));
-    return hasValidExtension && fs.existsSync(trimmedPath);
+    return hasValidExtension && trayIconExists(trimmedPath);
   }
 
   const trimmedPath = path.trim();
@@ -210,7 +213,7 @@ function validateTrayIconPath(path: string, validationElement: HTMLElement | nul
   }
 
   // Check if file exists
-  if (!fs.existsSync(trimmedPath)) {
+  if (!trayIconExists(trimmedPath)) {
     validationElement.textContent = "⚠️ File not found. Please check the path.";
     validationElement.style.display = "block";
     return false;
@@ -256,8 +259,7 @@ function refreshSettings() {
     theme.value = settingsStore.get(settings.theme);
     trayIcon.checked = settingsStore.get(settings.trayIcon);
     trayIconPath.value = settingsStore.get(settings.trayIconPath) || "";
-    transparentWindow.checked = settingsStore.get(settings.transparentWindow);
-
+    windowTransparency.checked = settingsStore.get(settings.windowTransparency);
     // Validate tray icon path on load
     const validationElement = document.getElementById("trayIconPathValidation");
     if (validationElement) {
@@ -295,7 +297,7 @@ function refreshSettings() {
  * Open an url in the default browsers
  */
 function openExternal(url: string) {
-  shell.openExternal(url);
+  ipcRenderer.send(settingsBridgeChannels.openExternal, url);
 }
 
 /**
@@ -439,6 +441,7 @@ window.addEventListener("DOMContentLoaded", () => {
   discord_idle_text = get("discord_idle_text");
   userAgent = get("userAgent");
   controllerType = get<HTMLSelectElement>("controllerType");
+  windowTransparency = get("windowTransparency");
 
   refreshSettings();
   addInputListener(adBlock, settings.adBlock);
@@ -473,6 +476,7 @@ window.addEventListener("DOMContentLoaded", () => {
   addTrayIconPathListener(trayIconPath, settings.trayIconPath);
   addInputListener(transparentWindow, settings.transparentWindow);
   addInputListener(updateFrequency, settings.updateFrequency);
+  addInputListener(windowTransparency, settings.windowTransparency);
   addInputListener(
     enableListenBrainz,
     settings.ListenBrainz.enabled,

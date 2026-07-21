@@ -1,4 +1,4 @@
-import { type PowerSaveBlocker, powerSaveBlocker } from "electron";
+import { powerSaveBlocker, type PowerSaveBlocker } from "electron";
 
 import { Logger } from "../logger";
 

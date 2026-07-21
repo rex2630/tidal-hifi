@@ -1,8 +1,7 @@
-import { type IpcMain, type IpcMainEvent, ipcMain, ipcRenderer } from "electron";
+import { ipcMain, ipcRenderer, type IpcMain, type IpcMainEvent } from "electron";
 
 import { globalEvents } from "../constants/globalEvents";
 
-// biome-ignore lint/complexity/noStaticOnlyClass: off
 export class Logger {
   /**
    * Subscribe to watch for logs from the IPC client

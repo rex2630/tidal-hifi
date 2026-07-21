@@ -26,7 +26,8 @@ This project uses specific tools that you should familiarize yourself with:
 
 - **npm**: Package management and script running
 - **nvm**: Node.js version management
-- **Biome**: Code formatting and linting
+- **oxlint**: Code linting
+- **Prettier**: Code formatting
 - **TypeScript**: Primary development language
 - **Electron**: Desktop application framework
 
@@ -52,7 +53,7 @@ Please use these tools as they're configured in the project rather than introduc
 ### Code Standards
 
 - Follow the existing code style and patterns
-- Use **Biome** for formatting and linting: `npm run lint` and `npm run format`
+- Use **oxlint** for linting and **Prettier** for formatting: `npm run lint` and `npm run format`
 - Write TypeScript with proper type definitions
 - Add appropriate comments for complex logic, but please don't comment on every flow/line
 - Follow existing naming conventions

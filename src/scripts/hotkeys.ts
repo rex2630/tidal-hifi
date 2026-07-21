@@ -9,3 +9,12 @@ export const addHotkey = (
     func(event, args);
   });
 };
+
+/**
+ * Unbind every hotkey previously registered via {@link addHotkey}. Used to
+ * re-register hotkeys after the configuration changes so updates apply without
+ * a restart.
+ */
+export const removeHotkeys = () => {
+  hotkeyjs.unbind();
+};
