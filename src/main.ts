@@ -184,7 +184,7 @@ function configureUserAgent() {
 
 function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
   // Transparent window is supported on Linux, Windows and macOS.
-  const useTransparentWindow = !!settingsStore.get(settings.transparentWindow);
+  const useTransparentWindow = !!settingsStore.get(settings.windowTransparency;
 
   // On Windows, transparent windows work best in frameless mode.
   const useFramelessOnWindows = useTransparentWindow && process.platform === "win32";
