@@ -79,7 +79,6 @@ let adBlock: HTMLInputElement,
   theme: HTMLSelectElement,
   trayIcon: HTMLInputElement,
   trayIconPath: HTMLInputElement,
-  transparentWindow: HTMLInputElement,
   updateFrequency: HTMLInputElement,
   windowTransparency: HTMLInputElement,
   enableListenBrainz: HTMLInputElement,
@@ -419,7 +418,6 @@ window.addEventListener("DOMContentLoaded", () => {
   theme = get<HTMLSelectElement>("themesList");
   trayIcon = get("trayIcon");
   trayIconPath = get("trayIconPath");
-  transparentWindow = get("transparentWindow");
   skipArtists = get("skipArtists");
   skippedArtists = get("skippedArtists");
   skipTracks = get("skipTracks");
@@ -474,7 +472,6 @@ window.addEventListener("DOMContentLoaded", () => {
   addSelectListener(theme, settings.theme);
   addInputListener(trayIcon, settings.trayIcon, switchesWithSettings.tray);
   addTrayIconPathListener(trayIconPath, settings.trayIconPath);
-  addInputListener(transparentWindow, settings.transparentWindow);
   addInputListener(updateFrequency, settings.updateFrequency);
   addInputListener(windowTransparency, settings.windowTransparency);
   addInputListener(
