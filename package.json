@@ -1,6 +1,6 @@
 {
   "name": "tidal-hifi",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "description": "Tidal on Electron with widevine(hifi) support",
   "main": "ts-dist/main.js",
   "scripts": {
@@ -13,7 +13,7 @@
     "watch": "tsc-watch --onSuccess \"npm run compile-all\"",
     "copy-files": "copyfiles -u 1 --exclude './src/**/*.ts' --exclude './src/**/*.scss' \"./src/**/*\" ts-dist",
     "copy-themes-dev": "copyfiles -u 1 \"./themes/*\" node_modules/electron/dist/resources",
-    "compile-all": "npm run sass-and-copy && npm run bundle-preloads && ts-node scripts/generate-swagger.ts",
+    "compile-all": "npm run sass-and-copy && npm run bundle-preloads && node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-swagger.ts",
     "sass-and-copy": "npm run sass && npm run copy-files && npm run copy-themes-dev",
     "build": "npm run builder -- -c ./build/electron-builder.yml",
     "build-deb": "npm run builder -- -c ./build/electron-builder.deb.yml",
@@ -31,7 +31,7 @@
     "lint": "oxlint && npm run format:check",
     "lint-fix": "oxlint --fix && npm run format",
     "builder": "electron-builder --publish=never",
-    "sass": "sass src/pages/settings/styles/settings.scss ./src/pages/settings/styles/settings.css && sass --no-source-map src/themes:themes"
+    "sass": "sass src/pages/settings/styles/settings.scss ./ts-dist/pages/settings/styles/settings.css && sass --no-source-map src/themes:themes"
   },
   "keywords": [
     "electron",
@@ -61,7 +61,7 @@
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/node": "^25.6.2",
+    "@types/node": "^25.9.5",
     "@types/swagger-ui-express": "^4.1.8",
     "copyfiles": "^2.4.1",
     "electron": "github:castlabs/electron-releases#v43.0.0+wvcus",
@@ -74,7 +74,6 @@
     "oxlint": "^1.74.0",
     "prettier": "^3.9.5",
     "swagger-jsdoc": "^6.2.8",
-    "ts-node": "^10.9.2",
     "tsc-watch": "^7.2.0",
     "typescript": "^7.0.0"
   },

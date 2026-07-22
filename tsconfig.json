@@ -13,12 +13,5 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*"],
-  "ts-node": {
-    "transpileOnly": true,
-    "compilerOptions": {
-      "rootDir": ".",
-      "types": ["node"]
-    }
-  }
+  "include": ["src/**/*"]
 }

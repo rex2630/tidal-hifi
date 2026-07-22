@@ -307,6 +307,21 @@ function hide() {
 }
 
 /**
+ * Populate the About section's version link from the running app version so it
+ * always matches package.json instead of being hardcoded in the HTML.
+ */
+function setAppVersion() {
+  const versionElement = document.querySelector<HTMLAnchorElement>(".about-section__version");
+  if (!versionElement) return;
+
+  const version = ipcRenderer.sendSync(settingsBridgeChannels.getAppVersion) as string;
+  if (!version) return;
+
+  versionElement.textContent = version;
+  versionElement.href = `https://github.com/Mastermindzh/tidal-hifi/releases/tag/${version}`;
+}
+
+/**
  * Bind UI components to functions after DOMContentLoaded
  */
 window.addEventListener("DOMContentLoaded", () => {
@@ -316,6 +331,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   getThemeFiles();
   handleFileUploads();
+  setAppVersion();
 
   document.getElementById("close")?.addEventListener("click", hide);
   document.getElementById("restartApp")?.addEventListener("click", () => {

@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.0.1]
+
+### fixes
+
+- player state (timestamps, progress bar, seek position & volume) is now read from the active audio buffer instead of a hardcoded element, fixing broken Discord timestamps and progress bar after TIDAL's gapless playback switches buffers, thanks to [AleksandarN-BG](https://github.com/AleksandarN-BG)
+- Discord rich presence no longer emits a bogus `00:00` / `00:00` during track changes and now updates when scrubbing/seeking
+
+### changed
+
+- the version shown in the settings' About section is now derived from the app version automatically, so it no longer has to be updated by hand
+
 ## [8.0.0]
 
 ### added

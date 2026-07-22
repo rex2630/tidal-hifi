@@ -120,6 +120,14 @@ function handleOpenExternal(_event: IpcMainEvent, url: string): void {
 }
 
 /**
+ * `settings:getAppVersion` — synchronously report the running app version so
+ * the settings window can render it without hardcoding it in the HTML.
+ */
+function handleGetAppVersion(event: IpcMainEvent): void {
+  event.returnValue = app.getVersion();
+}
+
+/**
  * Register the privileged operations delegated by the context-isolated
  * settings window preload: theme listing/uploads, tray-icon path checks and
  * opening external links. All `fs`/`path`/`shell` logic lives here rather than
@@ -130,4 +138,5 @@ export function registerSettingsBridge(): void {
   ipcMain.handle(settingsBridgeChannels.uploadThemes, handleUploadThemes);
   ipcMain.on(settingsBridgeChannels.trayIconExists, handleTrayIconExists);
   ipcMain.on(settingsBridgeChannels.openExternal, handleOpenExternal);
+  ipcMain.on(settingsBridgeChannels.getAppVersion, handleGetAppVersion);
 }
