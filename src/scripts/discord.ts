@@ -35,16 +35,27 @@ const defaultPresence = {
  * `setActivity` ~7,200 times/hour. Each call allocates a new payload and its
  * unawaited Promise — wasted work and extra GC pressure that also bumps into
  * Discord's rate limit (5 per 20 s). Dedupe by content excluding the jittery
- * `startTimestamp`/`endTimestamp` (derived from `Date.now()`) so identical
- * activity within the same track only sends once.
+ * `startTimestamp`/`endTimestamp` *values* (derived from `Date.now()`) so identical
+ * activity within the same track only sends once — while still keying on whether the
+ * timestamps are *present*, so the corrected payload is sent when they go from absent
+ * to available at the start of a track (see `includeTimeStamps`).
+ *
+ * `lastStartTimestamp` is tracked separately so a seek/scrub still updates Discord: during
+ * steady playback `startTimestamp` (now − elapsed) stays constant, but a scrub shifts it, so
+ * we re-send when it moves beyond a small tolerance without spamming on normal ticks.
  */
 let lastActivityKey = "";
+let lastStartTimestamp: number | undefined;
+
+// Seconds the derived start timestamp can drift (rounding jitter) before we treat it as a seek.
+const SEEK_TOLERANCE_SECONDS = 2;
 
 const updateActivity = () => {
   const showIdle = settingsStore.get<string, boolean>(settings.discord.showIdle) ?? true;
   const isPausedAndHidden = mediaInfo.status === MediaStatus.paused && !showIdle;
 
   let payloadKey: string;
+  let startTimestamp: number | undefined;
   let send: () => Promise<unknown> | undefined;
 
   if (isPausedAndHidden) {
@@ -52,16 +63,25 @@ const updateActivity = () => {
     send = () => rpc?.user?.clearActivity();
   } else {
     const activity = getActivity();
+    // getActivity only ever assigns a numeric epoch; normalize the wider number | Date type.
+    startTimestamp =
+      typeof activity.startTimestamp === "number" ? activity.startTimestamp : undefined;
     payloadKey = JSON.stringify({
       ...activity,
-      startTimestamp: undefined,
-      endTimestamp: undefined,
+      // Collapse the timestamps to a presence flag: exclude their shifting values but
+      // still re-send when they appear/disappear (e.g. duration becomes known mid-track).
+      startTimestamp: activity.startTimestamp !== undefined,
+      endTimestamp: activity.endTimestamp !== undefined,
     });
     send = () => rpc?.user?.setActivity(activity);
   }
 
-  if (payloadKey === lastActivityKey) return;
+  // Re-send when the content/presence changes, or when the timeline jumps (a seek/scrub).
+  const seeked =
+    Math.abs((startTimestamp ?? 0) - (lastStartTimestamp ?? 0)) > SEEK_TOLERANCE_SECONDS;
+  if (payloadKey === lastActivityKey && !seeked) return;
   lastActivityKey = payloadKey;
+  lastStartTimestamp = startTimestamp;
 
   send()?.catch(() => {});
 };
@@ -129,9 +149,12 @@ const getActivity = (): SetActivity => {
   }
 
   function includeTimeStamps(includeTimestamps: boolean) {
-    if (includeTimestamps) {
+    const durationSeconds = mediaInfo.durationInSeconds;
+    // Skip timestamps until we have a real duration. During a track change TIDAL's media
+    // element briefly reports duration = NaN (normalized to 0 by the controller), which
+    // would otherwise emit a bogus 00:00 / 00:00 that then sticks for the whole track.
+    if (includeTimestamps && durationSeconds > 0) {
       const currentSeconds = mediaInfo.currentInSeconds;
-      const durationSeconds = mediaInfo.durationInSeconds;
       const now = Math.trunc((Date.now() + 500) / 1000);
       presence.startTimestamp = now - currentSeconds;
       presence.endTimestamp = presence.startTimestamp + durationSeconds;
