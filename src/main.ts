@@ -274,7 +274,7 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
   // Transparent windows on Linux (X11/Wayland) don't maximize to fill the
   // screen, they stop at a smaller "limit" (see issue #866). Force the window
   // to the display's work area when maximized to work around this.
-  if (process.platform === "linux" && transparent) {
+  if (process.platform === "linux" && useTransparentWindow) {
     mainWindow.on("maximize", () => {
       const { workArea } = screen.getDisplayMatching(mainWindow.getBounds());
       mainWindow.setBounds(workArea);
