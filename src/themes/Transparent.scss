@@ -1,0 +1,118 @@
+// ============================================================================
+// Transparent Theme for TIDAL Hi-Fi
+// ============================================================================
+// A translucent "glass" theme: the main content area is fully transparent and
+// panels use semi-transparent dark surfaces so your desktop / wallpaper shows
+// through.
+//
+// Pair this with the "Window transparency" setting (Settings → Window) for the
+// full see-through effect, without it the window itself stays opaque and the
+// transparent backgrounds simply fall back to the window's solid colour.
+// ============================================================================
+
+@use "base" with (
+  $bg-main: transparent,
+  $bg-secondary: rgba(17, 18, 26, 0.55),
+  $bg-surface: rgba(26, 28, 40, 0.65),
+  $bg-elevated: rgba(36, 40, 56, 0.7),
+  $bg-hover: rgba(60, 66, 92, 0.55),
+  $bg-selection: rgba(70, 90, 130, 0.5),
+  $text-primary: #f2f4ff,
+  $text-secondary: #c8d0ea,
+  $text-muted: #9aa2c7,
+  $text-faint: #7f87ad,
+
+  $accent-primary: #7aa2f7,
+  $accent-green: #9ece6a,
+  $accent-red: #f7768e,
+  $accent-blue: #7aa2f7,
+  $accent-purple: #bb9af7,
+  $accent-cyan: #7dcfff,
+  $accent-yellow: #ffc676,
+
+  $border-subtle: rgba(255, 255, 255, 0.06),
+  $border-dim: rgba(255, 255, 255, 0.1)
+);
+
+@use "base-new" with (
+  $bg-main: transparent,
+  $bg-secondary: rgba(17, 18, 26, 0.55),
+  $bg-surface: rgba(26, 28, 40, 0.65),
+  $bg-elevated: rgba(36, 40, 56, 0.7),
+  $bg-hover: rgba(60, 66, 92, 0.55),
+  $bg-selection: rgba(70, 90, 130, 0.5),
+  $text-primary: #f2f4ff,
+  $text-secondary: #c8d0ea,
+  $text-muted: #9aa2c7,
+  $text-faint: #7f87ad,
+
+  $accent-primary: #7aa2f7,
+  $accent-green: #9ece6a,
+  $accent-red: #f7768e,
+  $accent-blue: #7aa2f7,
+  $accent-purple: #bb9af7,
+  $accent-cyan: #7dcfff,
+  $accent-yellow: #ffc676,
+
+  $border-subtle: rgba(255, 255, 255, 0.06),
+  $border-dim: rgba(255, 255, 255, 0.1)
+);
+
+// ============================================================================
+// Transparent-theme-specific overrides
+// ============================================================================
+// The shared bases drive most colours off $bg-main. Because this theme sets
+// $bg-main to `transparent`, a couple of surfaces end up fully see-through and
+// need to be pinned to an explicit, readable opacity here.
+
+// --- Settings window ---------------------------------------------------------
+.settings-window {
+  background: rgba(0, 0, 0, 0.75) !important;
+}
+
+.settings-window__wrapper {
+  background: transparent !important;
+}
+
+// --- Settings switches -------------------------------------------------------
+// `_base.scss` sets the *checked* toggle knob to $bg-main, which is transparent
+// in this theme and makes the dot disappear. Pin the knob to a solid colour so
+// the switch stays legible in both states.
+.switch input:checked + .switch__slider::before {
+  background-color: #f2f4ff !important;
+}
+
+.switch__slider::before {
+  background-color: #c8d0ea !important;
+}
+
+// --- Main window -------------------------------------------------------------
+html {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+body {
+  background: rgba(0, 0, 0, 0.75) !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
+}
+
+// NOTE: we deliberately do NOT touch `--wave-color-solid-base-fill`
+// TIDAL also uses it as a *text* colour (primary buttons, active tab), so
+// clearing it would make that text invisible.
+html {
+  --market-core-fill-black-color: transparent !important;
+  --market-core-fill-black-light-mode-color: transparent !important;
+  --market-core-fill-black-dark-mode-color: transparent !important;
+}
+
+[class*="_main_"],
+[class*="_mainContainer_"],
+[class*="_containerRow_"],
+[class*="_sidebar_"],
+[class*="_sidebarWrapper_"],
+[class*="_contentArea_"],
+[class*="_header_"],
+[class*="_sectionHeader_"] {
+  background-color: transparent !important;
+}

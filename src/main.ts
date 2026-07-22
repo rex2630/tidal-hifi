@@ -195,7 +195,10 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     width: settingsStore?.get(settings.windowBounds.width),
     height: settingsStore?.get(settings.windowBounds.height),
     icon,
-    backgroundColor: options.backgroundColor,
+    // A transparent window still needs a transparent base colour, otherwise the
+    // opaque backgroundColor sits behind the page and shows through wherever the
+    // (themed) CSS is transparent — defeating the point of a transparent theme.
+    backgroundColor: transparent ? "#00000000" : options.backgroundColor,
     autoHideMenuBar: true,
     transparent,
     webPreferences: {
