@@ -402,11 +402,6 @@ input[class*="_searchField_"] {
   background-color: $bg-main;
 }
 
-// Sticky headers in content areas
-[class*="_stickyHeader_"] {
-  background-color: $bg-main;
-}
-
 // Section headers (sidebar playlists, feed intervals)
 [class*="_sectionHeader_"] {
   background-color: $bg-main !important;
@@ -526,14 +521,6 @@ a {
 #footerPlayer [class*="_descriptionText_"] a {
   color: $text-secondary;
   &:hover {
-    color: $accent-blue;
-  }
-}
-
-// Playing from text
-[class*="_playingFrom_"] {
-  color: $text-muted;
-  a {
     color: $accent-blue;
   }
 }

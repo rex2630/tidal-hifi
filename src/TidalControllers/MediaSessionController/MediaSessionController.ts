@@ -204,8 +204,8 @@ export class MediaSessionController implements TidalController<MediaSessionContr
           }
         });
         this.mediaSession.metadata = null;
-      } catch (_error) {
-        // Ignore cleanup errors
+      } catch (error) {
+        Logger.log("Error while cleaning up MediaSession", { error });
       }
     }
 

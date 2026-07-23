@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - player state (timestamps, progress bar, seek position & volume) is now read from the active audio buffer instead of a hardcoded element, fixing broken Discord timestamps and progress bar after TIDAL's gapless playback switches buffers, thanks to [AleksandarN-BG](https://github.com/AleksandarN-BG)
 - Discord rich presence no longer emits a bogus `00:00` / `00:00` during track changes and now updates when scrubbing/seeking
+- util.isError compat shim added
 
 ### changed
 

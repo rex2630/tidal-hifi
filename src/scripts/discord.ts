@@ -209,8 +209,9 @@ export const unRPC = () => {
 
     try {
       rpc.user?.clearActivity()?.catch(() => {});
-    } catch (_error) {
-      // Ignore errors when Discord connection is already closed
+    } catch (error) {
+      // Discord connection may already be closed; log for diagnostics but continue teardown.
+      Logger.log("Clearing Discord activity during unRPC failed", { error });
     }
     rpc.destroy();
     rpc = null;

@@ -8,7 +8,10 @@ export const convertSecondsToClockFormat = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   // Return padded with zeros and only add zeros when necessary
-  return `${hours > 0 ? `${hours}:` : ""}${hours ? minutes.toString().padStart(2, "0") : minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  const hoursPart = hours > 0 ? `${hours}:` : "";
+  const minutesPart = hours ? minutes.toString().padStart(2, "0") : minutes;
+  const secondsPart = remainingSeconds.toString().padStart(2, "0");
+  return `${hoursPart}${minutesPart}:${secondsPart}`;
 };
 
 export const convertSecondsToMicroseconds = (seconds: number) => {

@@ -38,8 +38,8 @@ export const releaseInhibitor = (id: number, blocker?: PowerSaveBlocker) => {
     const currentBlocker = blocker ?? powerSaveBlocker;
     currentBlocker.stop(id);
     Logger.log(`Released inhibitor with id: ${id}`);
-  } catch (_error) {
-    Logger.log("Releasing inhibitor failed");
+  } catch (error) {
+    Logger.log("Releasing inhibitor failed", { error });
   }
 };
 
