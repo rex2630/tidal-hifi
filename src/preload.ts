@@ -1,4 +1,4 @@
-import { ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
 
 import { bridgeChannels } from "./constants/bridge";
 import { tidalControllers } from "./constants/controller";
@@ -20,6 +20,17 @@ import { getDomUpdateFrequency } from "./TidalControllers/DomController/domUpdat
 import { MediaSessionController } from "./TidalControllers/MediaSessionController/MediaSessionController";
 import { ReduxController } from "./TidalControllers/ReduxController/ReduxController";
 import type { TidalController } from "./TidalControllers/TidalController";
+
+contextBridge.exposeInMainWorld("electron", {
+  ipcRenderer: {
+    send: (channel: string, ...args: unknown[]) => {
+      ipcRenderer.send(channel, ...args);
+    },
+    invoke: (channel: string, ...args: unknown[]) => {
+      return ipcRenderer.invoke(channel, ...args);
+    },
+  },
+});
 
 const staticTitle = "TIDAL Hi-Fi";
 
