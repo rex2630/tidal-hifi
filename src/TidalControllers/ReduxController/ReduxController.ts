@@ -69,7 +69,7 @@ export class ReduxController implements TidalController<ReduxControllerOptions> 
     if (this.isStoreAvailable() && this.reduxStore) {
       try {
         const value = selector(this.reduxStore.getState());
-        return value === undefined ? fallback : value;
+        return value ?? fallback;
       } catch {
         return fallback;
       }
@@ -254,7 +254,10 @@ export class ReduxController implements TidalController<ReduxControllerOptions> 
   isFavorite() {
     const trackId = this.getTrackId();
     if (!trackId) return false;
-    return this.useSelector((state) => state.favorites.tracks.includes(parseInt(trackId)), false);
+    return this.useSelector(
+      (state) => state.favorites.tracks.includes(Number.parseInt(trackId)),
+      false,
+    );
   }
 
   playPause() {

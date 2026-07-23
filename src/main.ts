@@ -157,6 +157,11 @@ function getCustomProtocolUrl(args: string[]) {
   try {
     const parsed = new URL(url);
     const tidalParsed = new URL(tidalUrl);
+    // Only ever navigate to web content; never file:, data:, etc.
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      Logger.log(`Blocked custom protocol URL with unexpected scheme: ${parsed.protocol}`);
+      return null;
+    }
     if (parsed.hostname !== tidalParsed.hostname) {
       Logger.log(`Blocked custom protocol URL with unexpected host: ${parsed.hostname}`);
       return null;
@@ -183,28 +188,26 @@ function configureUserAgent() {
   }
 }
 
-function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
+function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
   // Transparency is opt-in and never enabled on macOS (it caused issues there).
   const transparent = isWindowTransparencyEnabled();
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    x: options.x,
-    y: options.y,
+    x,
+    y,
     width: settingsStore?.get(settings.windowBounds.width),
     height: settingsStore?.get(settings.windowBounds.height),
     icon,
     // A transparent window still needs a transparent base colour, otherwise the
     // opaque backgroundColor sits behind the page and shows through wherever the
     // (themed) CSS is transparent — defeating the point of a transparent theme.
-    backgroundColor: transparent ? "#00000000" : options.backgroundColor,
+    backgroundColor: transparent ? "#00000000" : backgroundColor,
     autoHideMenuBar: true,
     transparent,
     webPreferences: {
       ...windowPreferences,
-      ...{
-        preload: path.join(__dirname, "preload.js"),
-      },
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 

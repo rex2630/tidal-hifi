@@ -342,7 +342,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.querySelectorAll(".external-link").forEach((elem) => {
     elem.addEventListener("click", (event) => {
-      const url = (event.target as HTMLElement).getAttribute("data-url");
+      const url = (event.target as HTMLElement).dataset.url;
       if (url) openExternal(url);
     });
   });

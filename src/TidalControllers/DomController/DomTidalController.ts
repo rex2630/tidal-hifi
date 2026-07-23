@@ -297,8 +297,8 @@ export class DomTidalController implements TidalController<DomControllerOptions>
   getAudioQuality(): AudioQuality | undefined {
     const badge = getElement("qualityBadge");
     if (!badge) return undefined;
-    const dataTest = badge.getAttribute("data-test") || "";
-    const match = dataTest.match(/^quality-badge-(.+)$/);
+    const dataTest = badge.dataset.test || "";
+    const match = /^quality-badge-(.+)$/.exec(dataTest);
     const badgeText = badge.textContent?.trim() || undefined;
     const quality = match?.[1] || badgeText;
     if (!quality && !badgeText) return undefined;

@@ -235,7 +235,7 @@ function startEditingHotkey(bindingElement: HTMLElement): void {
 
     // Clean up the capture element
     if (document.body.contains(keyCapture)) {
-      document.body.removeChild(keyCapture);
+      keyCapture.remove();
     }
 
     bindingElement.classList.remove("editing");

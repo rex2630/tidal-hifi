@@ -21,7 +21,7 @@ export class MediaSessionController implements TidalController<MediaSessionContr
   private intervalId?: NodeJS.Timeout;
   private lastMediaInfo: Partial<MediaInfo> = {};
   private supportsMediaSession: boolean = false;
-  private fallbackDomController: DomTidalController;
+  private readonly fallbackDomController: DomTidalController;
 
   constructor() {
     // Initialize fallback DOM controller (without bootstrapping)
@@ -171,8 +171,8 @@ export class MediaSessionController implements TidalController<MediaSessionContr
     if (artwork && artwork.length > 0) {
       // Find the highest resolution image by parsing sizes (e.g., "1280x1280" -> 1280)
       const highestResArtwork = artwork.reduce((highest, current) => {
-        const currentSize = parseInt(current.sizes?.split("x")[0] || "0");
-        const highestSize = parseInt(highest.sizes?.split("x")[0] || "0");
+        const currentSize = Number.parseInt(current.sizes?.split("x")[0] || "0");
+        const highestSize = Number.parseInt(highest.sizes?.split("x")[0] || "0");
         return currentSize > highestSize ? current : highest;
       });
       return highestResArtwork.src;

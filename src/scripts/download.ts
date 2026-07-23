@@ -25,7 +25,20 @@ export const downloadFile = (fileUrl: string, targetPath: string): Promise<strin
               reject(new Error(`Too many redirects for ${fileUrl}`));
               return;
             }
-            doRequest(response.headers.location, redirectCount + 1);
+            // Resolve (possibly relative) redirects against the current URL and only
+            // follow http(s) targets, so a redirect can't downgrade to another scheme.
+            let redirectUrl: URL;
+            try {
+              redirectUrl = new URL(response.headers.location, url);
+            } catch {
+              reject(new Error(`Invalid redirect location for ${fileUrl}`));
+              return;
+            }
+            if (redirectUrl.protocol !== "http:" && redirectUrl.protocol !== "https:") {
+              reject(new Error(`Blocked redirect to unsupported protocol for ${fileUrl}`));
+              return;
+            }
+            doRequest(redirectUrl.toString(), redirectCount + 1);
             return;
           }
 

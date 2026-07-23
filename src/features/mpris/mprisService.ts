@@ -27,7 +27,7 @@ export class MprisService {
   // so normal drift stays well under this.
   private static readonly POSITION_DRIFT_TOLERANCE_SECONDS = 2;
 
-  constructor(private mainWindow: BrowserWindow) {}
+  constructor(private readonly mainWindow: BrowserWindow) {}
 
   initialize(): void {
     if (process.platform !== "linux") {
@@ -44,7 +44,7 @@ export class MprisService {
    */
   private sanitizeTrackIdForDbus(trackId: string | undefined): string {
     if (!trackId) return "0";
-    const sanitized = trackId.replace(/[^A-Za-z0-9_]/g, "_");
+    const sanitized = trackId.replace(/\W/g, "_");
     return sanitized || "0";
   }
 
