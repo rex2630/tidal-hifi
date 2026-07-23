@@ -257,18 +257,14 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     </html>
     `)}`);
 
-  mainWindow.webContents.once("did-finish-load", () => {
-    injectTitlebar(mainWindow.webContents);
-  });
-
-  tidalView.webContents.on("did-finish-load", () => {
-    injectThemeCss(app, tidalView.webContents);
-  })
-
   registerHttpProtocols();
   syncMenuBarWithStore();
   configureUserAgent();
   addAltKeyMenuBarHandler(mainWindow);
+
+  mainWindow.webContents.once("did-finish-load", () => {
+    injectTitlebar(mainWindow.webContents);
+  });
 
   // Inject theme CSS via Chromium-level insertCSS on every page load.
   // This survives SPA hydration / DOM replacement that wipes preload-injected <style> elements.
