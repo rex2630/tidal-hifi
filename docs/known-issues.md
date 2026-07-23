@@ -51,7 +51,6 @@ The default value of this flag is "true", which means the sandbox is disabled. T
 If you see a "Subscribe" button or notice that account-related features aren't working properly, this is likely due to the built-in ad blocker being too aggressive.
 
 **Cause**: Tidal hosts account management and advertisements on the same domain, so the ad blocker may inadvertently block account-related functionality.
-
 **Fix**: Temporarily disable the ad blocker in the app:
 
 1. Open Tidal Hi-Fi settings (`Ctrl + =`)
@@ -60,6 +59,10 @@ If you see a "Subscribe" button or notice that account-related features aren't w
 4. Refresh the page or restart the app
 5. Complete your account-related tasks
 6. Re-enable the ad blocker if desired
+
+### 2-minute (~110 second) startup delay
+
+> **Note**: Adblock blocks the `/users/<id>/...` requests (favorites, clients, subscription) at the network level. Tidal now awaits those requests before rendering, so blocking them stalled startup for ~110 seconds (issue #973).
 
 ## DRM not working on Windows (error S6007)
 

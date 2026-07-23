@@ -20,6 +20,7 @@ import { MprisService } from "./features/mpris/mprisService";
 import { SharingService } from "./features/sharingService/sharingService";
 import { injectThemeCss, injectThemeCssIfChanged } from "./features/theming/theming";
 import { tidalUrl } from "./features/tidal/url";
+import { isWindowTransparencyEnabled } from "./features/windowTransparency/windowTransparency";
 import type { MediaInfo } from "./models/mediaInfo";
 import { MediaStatus } from "./models/mediaStatus";
 import { initRPC, rpc, unRPC } from "./scripts/discord";
@@ -184,9 +185,7 @@ function configureUserAgent() {
 
 function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
   // Transparency is opt-in and never enabled on macOS (it caused issues there).
-  const transparent =
-    process.platform !== "darwin" &&
-    settingsStore?.get<string, boolean>(settings.windowTransparency);
+  const transparent = isWindowTransparencyEnabled();
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -319,10 +318,25 @@ app.on("ready", async () => {
 
     // Adblock
     if (settingsStore.get(settings.adBlock)) {
+      // TIDAL serves ads and account/session data from the same domain, so there
+      // is no `/users/<id>/...` request we can cancel without breaking startup:
+      // favorites, clients and subscription are all awaited by the web app before
+      // it renders, and cancelling any of them stalls startup for ~110s on an
+      // internal retry loop (issue #973).
+      const adRequestPatterns: RegExp[] = [
+        /\/users\/.*\d\?country/, // original broad rule (blocked everything below)
+        // /\/users\/\d+\/subscription\?country/, // subscription tier (drives the Subscribe button)
+        // /\/users\/\d+\/favorites\/ids\?country/, // favorite track ids
+        // /\/users\/\d+\/clients\?country/, // registered devices
+      ];
       const filter = { urls: [`${tidalUrl}/*`] };
       session.defaultSession.webRequest.onBeforeRequest(filter, (details, callback) => {
-        if (details.url.match(/\/users\/.*\d\?country/)) callback({ cancel: true });
-        else callback({ cancel: false });
+        if (adRequestPatterns.some((pattern) => pattern.test(details.url))) {
+          Logger.log(`[adBlock] cancelling request: ${details.url}`);
+          callback({ cancel: true });
+        } else {
+          callback({ cancel: false });
+        }
       });
     }
     Logger.log("components ready:", components.status());
