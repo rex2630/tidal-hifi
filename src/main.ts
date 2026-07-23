@@ -1,6 +1,6 @@
 import path from "node:path";
 import { initialize } from "@electron/remote/main";
-import { app, BrowserWindow, components, ipcMain, screen, session } from "electron";
+import { app, BrowserView, BrowserWindow, components, ipcMain, screen, session } from "electron";
 
 import { globalEvents } from "./constants/globalEvents";
 import { settings } from "./constants/settings";
@@ -27,6 +27,7 @@ import { initRPC, rpc, unRPC } from "./scripts/discord";
 import { updateMediaInfo } from "./scripts/mediaInfo";
 import { addMenu } from "./scripts/menu";
 import { isSandboxDisabled } from "./scripts/sandbox";
+import { injectTitlebar } from "./features/titlebar/titlebar"
 import {
   closeSettingsWindow,
   createSettingsWindow,
@@ -37,10 +38,13 @@ import {
 } from "./scripts/settings";
 import { addTray, refreshTray } from "./scripts/tray";
 
+const TITLEBAR_HEIGHT = 36;
+
 let mainInhibitorId = -1;
 let mprisService: MprisService | null;
 
 let mainWindow: BrowserWindow;
+let tidalView: BrowserView;
 const icon = path.join(__dirname, "../assets/icon.png");
 const PROTOCOL_PREFIX = "tidal";
 
@@ -179,8 +183,21 @@ function configureUserAgent() {
     customUserAgent !== values.defaultUserAgent &&
     customUserAgent.trim() !== ""
   ) {
-    mainWindow.webContents.setUserAgent(customUserAgent);
+    tidalView.webContents.setUserAgent(customUserAgent);
   }
+}
+
+function updateTidalViewBounds() {
+  if (!mainWindow || !tidalView) return
+
+    const [width, height] = mainWindow.getContentSize()
+    tidalView.setBounds({
+      x: 0,
+      y: TITLEBAR_HEIGHT,
+      width,
+      height: Math.max(0, height - TITLEBAR_HEIGHT),
+    })
+    tidalView.setAutoResize({ width: true, height: true })
 }
 
 function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
@@ -198,6 +215,7 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     // opaque backgroundColor sits behind the page and shows through wherever the
     // (themed) CSS is transparent — defeating the point of a transparent theme.
     backgroundColor: transparent ? "#00000000" : options.backgroundColor,
+    frame: false,
     autoHideMenuBar: true,
     transparent,
     webPreferences: {
@@ -208,6 +226,45 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     },
   });
 
+  tidalView = new BrowserView({
+    webPreferences: {
+      ...windowPreferences,
+      ...{
+        preload: path.join(__dirname, "preload.js"),
+      },
+    },
+  });
+
+  mainWindow.setBrowserView(tidalView);
+  updateTidalViewBounds();
+
+  mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(`
+    <!doctype html>
+    <html>
+    <head>
+    <meta charset="UTF-8" />
+    <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+    }
+    </style>
+    </head>
+    <body></body>
+    </html>
+    `)}`);
+
+  mainWindow.webContents.once("did-finish-load", () => {
+    injectTitlebar(mainWindow.webContents);
+  });
+
+  tidalView.webContents.on("did-finish-load", () => {
+    injectThemeCss(app, tidalView.webContents);
+  })
+
   registerHttpProtocols();
   syncMenuBarWithStore();
   configureUserAgent();
@@ -215,24 +272,17 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
 
   // Inject theme CSS via Chromium-level insertCSS on every page load.
   // This survives SPA hydration / DOM replacement that wipes preload-injected <style> elements.
-  mainWindow.webContents.on("did-finish-load", () => {
-    injectThemeCss(app, mainWindow.webContents);
+  tidalView.webContents.on("did-finish-load", () => {
+    injectThemeCss(app, tidalView.webContents);
   });
 
   // find the custom protocol argument
   const customProtocolUrl = getCustomProtocolUrl(process.argv);
-
-  if (customProtocolUrl) {
-    // load the url received from the custom protocol
-    mainWindow.loadURL(customProtocolUrl);
-  } else {
-    // load the Tidal website
-    mainWindow.loadURL(tidalUrl);
-  }
+  tidalView.webContents.loadURL(customProtocolUrl || tidalUrl);
 
   if (settingsStore.get(settings.disableBackgroundThrottle)) {
     // prevent setInterval lag
-    mainWindow.webContents.setBackgroundThrottling(false);
+    tidalView.webContents.setBackgroundThrottling(false);
   }
 
   app.on("before-quit", () => {
@@ -253,6 +303,7 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     gracefulExit();
   });
   mainWindow.on("resize", () => {
+    updateTidalViewBounds();
     // Don't persist maximized/full-screen bounds, otherwise the restored
     // (un-maximized) size gets overwritten with the maximized dimensions.
     if (mainWindow.isMaximized() || mainWindow.isFullScreen()) {
@@ -269,9 +320,10 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
     mainWindow.on("maximize", () => {
       const { workArea } = screen.getDisplayMatching(mainWindow.getBounds());
       mainWindow.setBounds(workArea);
+      updateTidalViewBounds();
     });
   }
-  mainWindow.webContents.setWindowOpenHandler(() => {
+  tidalView.webContents.setWindowOpenHandler(() => {
     return {
       action: "allow",
       overrideBrowserWindowOptions: {
@@ -301,7 +353,7 @@ app.on("ready", async () => {
       const customProtocolUrl = getCustomProtocolUrl(commandLine);
 
       if (customProtocolUrl) {
-        mainWindow.loadURL(customProtocolUrl);
+        tidalView.webContents.loadURL(customProtocolUrl);
       }
 
       if (mainWindow) {
@@ -426,11 +478,11 @@ ipcMain.on(globalEvents.showSettings, () => {
 });
 
 ipcMain.on(globalEvents.resetZoom, () => {
-  mainWindow.webContents.setZoomFactor(1.0);
+  tidalView.webContents.setZoomFactor(1.0);
 });
 
-ipcMain.on(globalEvents.hardReload, (event) => {
-  event.sender.reloadIgnoringCache();
+ipcMain.on(globalEvents.hardReload, (_event) => {
+  tidalView.webContents.reloadIgnoringCache();
 });
 
 ipcMain.on(globalEvents.refreshMenuBar, () => {
@@ -442,12 +494,12 @@ ipcMain.on(globalEvents.storeChanged, () => {
 
   // Re-inject theme + custom CSS only when it actually changed, so appearance
   // changes apply live without flickering the window on unrelated settings.
-  injectThemeCssIfChanged(app, mainWindow.webContents);
+  injectThemeCssIfChanged(app, tidalView.webContents);
   refreshSettingsWindowTheme();
 
   // Notify the main renderer so it can re-apply settings that are otherwise only
   // read at startup (hotkeys, window title).
-  mainWindow.webContents.send(globalEvents.storeChanged);
+  tidalView.webContents.send(globalEvents.storeChanged);
 
   if (settingsStore.get(settings.enableDiscord) && !rpc) {
     initRPC();
@@ -482,6 +534,22 @@ ipcMain.on(globalEvents.restartApp, () => {
 
 ipcMain.on(globalEvents.quit, () => {
   gracefulExit();
+});
+
+ipcMain.on("window-minimize", () => {
+  mainWindow.minimize();
+});
+
+ipcMain.on("window-maximize-toggle", () => {
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow.maximize();
+  }
+});
+
+ipcMain.on("window-close", () => {
+  mainWindow.close();
 });
 
 ipcMain.handle(globalEvents.getUniversalLink, async (_event, url) => {
