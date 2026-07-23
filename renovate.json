@@ -1,5 +1,14 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "baseBranchPatterns": ["develop"],
-  "ignoreDeps": ["@types/node", "electron-store", "@xhayper/discord-rpc"]
+  "ignoreDeps": ["@types/node", "electron-store", "@xhayper/discord-rpc"],
+  "schedule": ["* * * * 6"],
+  "packageRules": [
+    {
+      "matchPackageNames": ["*"],
+      "groupName": "all dependencies",
+      "groupSlug": "all-dependencies",
+      "separateMajorMinor": false
+    }
+  ]
 }
