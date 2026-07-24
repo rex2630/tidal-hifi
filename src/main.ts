@@ -228,7 +228,9 @@ function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
   mainWindow.webContents.on("did-finish-load", () => {
     injectThemeCss(app, mainWindow.webContents);
     // Same lifecycle hook, same technique: paint the custom titlebar.
-    injectTitlebarStyles(mainWindow.webContents);
+    if (settingsStore.get(settings.showTitlebar) !== false) {
+      injectTitlebarStyles(mainWindow.webContents);
+    }
   });
 
   // find the custom protocol argument
