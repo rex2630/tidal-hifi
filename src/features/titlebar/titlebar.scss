@@ -39,6 +39,10 @@ $titlebar-close-hover: #e81123;
   transform: translateZ(0) !important;
 }
 
+[class*="_nowPlayingContainer_"] {
+  margin-top: var(--thf-titlebar-height) !important;
+}
+
 #tidal-hifi-titlebar {
   position: fixed;
   top: 0;
