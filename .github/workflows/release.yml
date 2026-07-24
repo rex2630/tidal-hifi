@@ -1,79 +1,46 @@
 name: Release CI
-permissions:
-  contents: write
+
 on:
   push:
     branches:
       - windows-test
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build_on_windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24.12.0
-      - run: npm install
+          cache: npm
+
+      - run: npm ci
       - run: npm run build-win
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-builds
           path: dist/*.msi
 
-  build_on_linux:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - target: deb
-            script: build-deb
-            glob: "dist/*.deb"
-          - target: rpm
-            script: build-rpm
-            glob: "dist/*.rpm"
-          - target: snap
-            script: build-snap
-            glob: "dist/*.snap"
-          - target: arch
-            script: build-arch
-            glob: "dist/*.pacman"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24.12.0
-      - name: Install Linux build dependencies
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y rpm fakeroot dpkg
-      - name: Install Snapcraft (snap target only)
-        if: matrix.target == 'snap'
-        run: |
-          sudo snap install snapcraft --classic
-          sudo snap install lxd
-          sudo lxd init --auto
-      - name: Install Arch build tools (arch target only)
-        if: matrix.target == 'arch'
-        run: sudo apt-get install -y binutils
-      - run: npm install
-      - name: Build ${{ matrix.target }}
-        run: npm run ${{ matrix.script }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-${{ matrix.target }}-builds
-          path: ${{ matrix.glob }}
-
   build_on_mac:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24.12.0
-      - run: npm install
+          cache: npm
+
+      - run: npm ci
       - run: npm run build-mac
+
       - uses: actions/upload-artifact@v4
         with:
           name: mac-builds
@@ -82,18 +49,16 @@ jobs:
   create_release:
     needs:
       - build_on_windows
-      - build_on_linux
       - build_on_mac
-    if: |
-      always() &&
-      needs.build_on_windows.result == 'success'
+    if: always() && needs.build_on_windows.result == 'success' && needs.build_on_mac.result == 'success'
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Get version from package.json
         id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        run: echo 'version='"$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - uses: actions/download-artifact@v4
         with:
@@ -110,8 +75,4 @@ jobs:
           generate_release_notes: true
           files: |
             artifacts/windows-builds/*.msi
-            artifacts/linux-deb-builds/*.deb
-            artifacts/linux-rpm-builds/*.rpm
-            artifacts/linux-snap-builds/*.snap
-            artifacts/linux-arch-builds/*.pacman
             artifacts/mac-builds/*.dmg
