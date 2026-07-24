@@ -67,6 +67,10 @@ $titlebar-close-hover: #e81123;
     white-space: nowrap;
   }
 
+  &.thf-macos .thf-title {
+    padding-left: 78px;
+  }
+
   .thf-controls {
     display: flex;
     gap: 2px;
