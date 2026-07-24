@@ -241,6 +241,79 @@ export class MprisService {
     });
   }
 
+  /**
+   * Strip a doubled Tidal resource prefix from an image URL (a Tidal bug with
+   * uploaded content), returning the corrected art URL.
+   */
+  private resolveArtUrl(image: string | undefined): string {
+    const artUrl = image || "";
+    if (artUrl.startsWith(MprisService.TIDAL_RESOURCE_PREFIX)) {
+      const afterPrefix = artUrl.substring(MprisService.TIDAL_RESOURCE_PREFIX.length);
+      if (afterPrefix.startsWith("http://") || afterPrefix.startsWith("https://")) {
+        return afterPrefix;
+      }
+    }
+    return artUrl;
+  }
+
+  /**
+   * Assign the full D-Bus metadata object. This is what triggers the
+   * PropertiesChanged signal, so it must only be called when the track actually
+   * changes (not on every polling tick).
+   */
+  private applyTrackMetadata(
+    mediaInfo: MediaInfo,
+    safeTrackId: string,
+    artUrl: string,
+    safeDuration: number,
+  ): void {
+    if (!this.player) return;
+
+    // Compute custom metadata only when the track has actually changed to
+    // avoid creating a new flattened object on every poll cycle.
+    const customMetadata = this.filterForDbusMetadata(ObjectToDotNotation(mediaInfo, "custom:"));
+
+    this.player.metadata = {
+      "xesam:title": mediaInfo.title || "",
+      // xesam:artist is an array of individual artists; prefer the parsed list so GNOME
+      // shows every credited artist, falling back to the joined string when it's absent.
+      "xesam:artist":
+        mediaInfo.artistsArray && mediaInfo.artistsArray.length > 0
+          ? mediaInfo.artistsArray
+          : [mediaInfo.artists || ""],
+      "xesam:album": mediaInfo.album || "",
+      "xesam:url": mediaInfo.url || "",
+      "mpris:artUrl": artUrl,
+      "mpris:length": convertSecondsToMicroseconds(safeDuration),
+      "mpris:trackid": `/org/mpris/MediaPlayer2/track/${safeTrackId}`,
+      ...customMetadata,
+    };
+  }
+
+  /**
+   * Apply shuffle / repeat / volume from mediaInfo, falling back to sensible
+   * defaults when no player state is available.
+   */
+  private applyPlayerState(playerState: MediaInfo["player"], safeVolume: number): void {
+    if (!this.player) return;
+
+    if (playerState) {
+      if (typeof playerState.shuffle === "boolean") {
+        this.player.shuffle = playerState.shuffle;
+      }
+
+      if (playerState.repeat) {
+        const mprisLoopStatus = convertRepeatStateToMprisLoop(playerState.repeat);
+        this.player.loopStatus = mprisLoopStatus || "None";
+      }
+
+      this.player.volume = safeVolume;
+    } else {
+      this.player.shuffle = false;
+      this.player.loopStatus = "None";
+    }
+  }
+
   updateMetadata(mediaInfo: MediaInfo): void {
     // If player is broken and not currently reconnecting, try to restart for new song
     if (!this.player && !this.isReconnecting) {
@@ -261,15 +334,7 @@ export class MprisService {
       const safeTrackId = this.sanitizeTrackIdForDbus(mediaInfo.trackId);
       const safeDuration = this.safeNumber(mediaInfo.durationInSeconds, 0);
       const safeVolume = Math.max(0, Math.min(1, this.safeNumber(mediaInfo.volume, 1.0)));
-
-      // Guard against double-prefixed image URLs (Tidal bug with uploaded content)
-      let artUrl = mediaInfo.image || "";
-      if (artUrl.startsWith(MprisService.TIDAL_RESOURCE_PREFIX)) {
-        const afterPrefix = artUrl.substring(MprisService.TIDAL_RESOURCE_PREFIX.length);
-        if (afterPrefix.startsWith("http://") || afterPrefix.startsWith("https://")) {
-          artUrl = afterPrefix;
-        }
-      }
+      const artUrl = this.resolveArtUrl(mediaInfo.image);
 
       // Build a snapshot key from the static track fields.  We intentionally
       // exclude time-varying fields (currentInSeconds, current, status, …) so
@@ -287,33 +352,9 @@ export class MprisService {
       ]);
 
       const trackChanged = trackMetadataKey !== this.lastTrackMetadataKey;
-
       if (trackChanged) {
         this.lastTrackMetadataKey = trackMetadataKey;
-
-        // Compute custom metadata only when the track has actually changed to
-        // avoid creating a new flattened object on every poll cycle.
-        const customMetadata = this.filterForDbusMetadata(
-          ObjectToDotNotation(mediaInfo, "custom:"),
-        );
-
-        // Assign the full metadata object — this is what triggers the D-Bus
-        // PropertiesChanged signal, so we only do it when the track changes.
-        this.player.metadata = {
-          "xesam:title": mediaInfo.title || "",
-          // xesam:artist is an array of individual artists; prefer the parsed list so GNOME
-          // shows every credited artist, falling back to the joined string when it's absent.
-          "xesam:artist":
-            mediaInfo.artistsArray && mediaInfo.artistsArray.length > 0
-              ? mediaInfo.artistsArray
-              : [mediaInfo.artists || ""],
-          "xesam:album": mediaInfo.album || "",
-          "xesam:url": mediaInfo.url || "",
-          "mpris:artUrl": artUrl,
-          "mpris:length": convertSecondsToMicroseconds(safeDuration),
-          "mpris:trackid": `/org/mpris/MediaPlayer2/track/${safeTrackId}`,
-          ...customMetadata,
-        };
+        this.applyTrackMetadata(mediaInfo, safeTrackId, artUrl, safeDuration);
       }
 
       const isPlaying = mediaInfo.status !== MediaStatus.paused;
@@ -325,23 +366,7 @@ export class MprisService {
       // stays accurate; steady playback still relies on client-side extrapolation.
       this.syncPosition(this.currentPosition, isPlaying, trackChanged);
 
-      // Update player state from mediaInfo if available
-      if (mediaInfo.player) {
-        if (typeof mediaInfo.player.shuffle === "boolean") {
-          this.player.shuffle = mediaInfo.player.shuffle;
-        }
-
-        if (mediaInfo.player.repeat) {
-          const mprisLoopStatus = convertRepeatStateToMprisLoop(mediaInfo.player.repeat);
-          this.player.loopStatus = mprisLoopStatus || "None";
-        }
-
-        this.player.volume = safeVolume;
-      } else {
-        // Use reasonable defaults if player state is not available
-        this.player.shuffle = false;
-        this.player.loopStatus = "None";
-      }
+      this.applyPlayerState(mediaInfo.player, safeVolume);
     } catch (error) {
       Logger.log("Error updating MPRIS metadata:", error);
       if (this.isStreamError(error)) {

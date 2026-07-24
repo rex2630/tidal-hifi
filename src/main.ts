@@ -27,7 +27,7 @@ import { tidalUrl } from "./features/tidal/url";
 import { isWindowTransparencyEnabled } from "./features/windowTransparency/windowTransparency";
 import type { MediaInfo } from "./models/mediaInfo";
 import { MediaStatus } from "./models/mediaStatus";
-import { initRPC, rpc, unRPC } from "./scripts/discord";
+import { initRPC, isRPCConnected, unRPC } from "./scripts/discord";
 import { updateMediaInfo } from "./scripts/mediaInfo";
 import { addMenu } from "./scripts/menu";
 import { isSandboxDisabled } from "./scripts/sandbox";
@@ -106,7 +106,7 @@ function syncMenuBarWithStore() {
 function performCleanup(): void {
   try {
     Logger.log("Performing application cleanup...");
-    if (rpc) {
+    if (isRPCConnected()) {
       unRPC();
     }
     closeSettingsWindow();
@@ -301,75 +301,99 @@ function registerHttpProtocols() {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on("ready", async () => {
-  // check if the app is the main instance and multiple instances are not allowed
-  if (isMainInstance() && !isMultipleInstancesAllowed()) {
-    app.on("second-instance", (_, commandLine) => {
-      const customProtocolUrl = getCustomProtocolUrl(commandLine);
-
-      if (customProtocolUrl) {
-        mainWindow.loadURL(customProtocolUrl);
-      }
-
-      if (mainWindow) {
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.show();
-        mainWindow.focus();
-      }
-    });
+/**
+ * When this is the sole instance, focus/raise the existing window (and honour any
+ * incoming custom-protocol URL) instead of letting a second launch spawn a new one.
+ */
+function registerSecondInstanceHandler() {
+  if (!isMainInstance() || isMultipleInstancesAllowed()) {
+    return;
   }
+
+  app.on("second-instance", (_, commandLine) => {
+    const customProtocolUrl = getCustomProtocolUrl(commandLine);
+
+    if (customProtocolUrl) {
+      mainWindow.loadURL(customProtocolUrl);
+    }
+
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
+/**
+ * Cancel TIDAL ad/session requests when ad-blocking is enabled.
+ */
+function setupAdBlock() {
+  if (!settingsStore.get(settings.adBlock)) {
+    return;
+  }
+
+  // TIDAL serves ads and account/session data from the same domain, so there
+  // is no `/users/<id>/...` request we can cancel without breaking startup:
+  // favorites, clients and subscription are all awaited by the web app before
+  // it renders, and cancelling any of them stalls startup for ~110s on an
+  // internal retry loop (issue #973).
+  const adRequestPatterns: RegExp[] = [
+    /\/users\/.*\d\?country/, // original broad rule (blocked everything below)
+    // /\/users\/\d+\/subscription\?country/, // subscription tier (drives the Subscribe button)
+    // /\/users\/\d+\/favorites\/ids\?country/, // favorite track ids
+    // /\/users\/\d+\/clients\?country/, // registered devices
+  ];
+  const filter = { urls: [`${tidalUrl}/*`] };
+  session.defaultSession.webRequest.onBeforeRequest(filter, (details, callback) => {
+    if (adRequestPatterns.some((pattern) => pattern.test(details.url))) {
+      Logger.log(`[adBlock] cancelling request: ${details.url}`);
+      callback({ cancel: true });
+    } else {
+      callback({ cancel: false });
+    }
+  });
+}
+
+/**
+ * Create the main window and start the optional services enabled in settings.
+ */
+function initializeWindowAndServices() {
+  createWindow();
+  addMenu(mainWindow);
+  createSettingsWindow();
+  if (settingsStore.get(settings.trayIcon)) {
+    addTray(mainWindow, { icon });
+    refreshTray(mainWindow);
+  }
+  if (settingsStore.get(settings.api)) {
+    startApi(mainWindow);
+  }
+  if (settingsStore.get(settings.enableDiscord)) {
+    initRPC();
+  }
+  if (settingsStore.get(settings.mpris)) {
+    mprisService = new MprisService(mainWindow);
+    mprisService.initialize();
+  }
+
+  // Hide window on startup if startMinimized is enabled
+  if (settingsStore.get(settings.startMinimized)) {
+    mainWindow.hide();
+  }
+}
+
+app.on("ready", async () => {
+  registerSecondInstanceHandler();
 
   if (isMainInstance() || isMultipleInstancesAllowed()) {
     await components.whenReady();
     initialize();
 
-    // Adblock
-    if (settingsStore.get(settings.adBlock)) {
-      // TIDAL serves ads and account/session data from the same domain, so there
-      // is no `/users/<id>/...` request we can cancel without breaking startup:
-      // favorites, clients and subscription are all awaited by the web app before
-      // it renders, and cancelling any of them stalls startup for ~110s on an
-      // internal retry loop (issue #973).
-      const adRequestPatterns: RegExp[] = [
-        /\/users\/.*\d\?country/, // original broad rule (blocked everything below)
-        // /\/users\/\d+\/subscription\?country/, // subscription tier (drives the Subscribe button)
-        // /\/users\/\d+\/favorites\/ids\?country/, // favorite track ids
-        // /\/users\/\d+\/clients\?country/, // registered devices
-      ];
-      const filter = { urls: [`${tidalUrl}/*`] };
-      session.defaultSession.webRequest.onBeforeRequest(filter, (details, callback) => {
-        if (adRequestPatterns.some((pattern) => pattern.test(details.url))) {
-          Logger.log(`[adBlock] cancelling request: ${details.url}`);
-          callback({ cancel: true });
-        } else {
-          callback({ cancel: false });
-        }
-      });
-    }
+    setupAdBlock();
     Logger.log("components ready:", components.status());
 
-    createWindow();
-    addMenu(mainWindow);
-    createSettingsWindow();
-    if (settingsStore.get(settings.trayIcon)) {
-      addTray(mainWindow, { icon });
-      refreshTray(mainWindow);
-    }
-    if (settingsStore.get(settings.api)) {
-      startApi(mainWindow);
-    }
-    if (settingsStore.get(settings.enableDiscord)) {
-      initRPC();
-    }
-    if (settingsStore.get(settings.mpris)) {
-      mprisService = new MprisService(mainWindow);
-      mprisService.initialize();
-    }
-
-    // Hide window on startup if startMinimized is enabled
-    if (settingsStore.get(settings.startMinimized)) {
-      mainWindow.hide();
-    }
+    initializeWindowAndServices();
   } else {
     gracefulExit();
   }
@@ -456,9 +480,9 @@ ipcMain.on(globalEvents.storeChanged, () => {
   // read at startup (hotkeys, window title).
   mainWindow.webContents.send(globalEvents.storeChanged);
 
-  if (settingsStore.get(settings.enableDiscord) && !rpc) {
+  if (settingsStore.get(settings.enableDiscord) && !isRPCConnected()) {
     initRPC();
-  } else if (!settingsStore.get(settings.enableDiscord) && rpc) {
+  } else if (!settingsStore.get(settings.enableDiscord) && isRPCConnected()) {
     unRPC();
   }
 

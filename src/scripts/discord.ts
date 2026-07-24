@@ -10,7 +10,12 @@ import { settingsStore } from "./settingsStore";
 
 const clientId = "833617820704440341";
 
-export let rpc: Client | null;
+let rpc: Client | null = null;
+
+/**
+ * Whether an active Discord RPC client currently exists.
+ */
+export const isRPCConnected = (): boolean => rpc !== null;
 
 const ACTIVITY_LISTENING = 2;
 const MAX_RETRIES = 5;
@@ -86,6 +91,26 @@ const updateActivity = () => {
   send()?.catch(() => {});
 };
 
+/**
+ * Pad a string using spaces to at least 2 characters
+ * @param input string to pad with 2 characters
+ */
+const pad = (input: string): string => input.padEnd(2, " ");
+
+/**
+ * Read the Discord "show song" related settings, applying defaults.
+ */
+const getFromStore = () => {
+  const includeTimestamps =
+    settingsStore.get<string, boolean>(settings.discord.includeTimestamps) ?? true;
+  const detailsPrefix =
+    settingsStore.get<string, string>(settings.discord.detailsPrefix) ?? "Listening to ";
+  const buttonText =
+    settingsStore.get<string, string>(settings.discord.buttonText) ?? "Play on TIDAL";
+
+  return { includeTimestamps, detailsPrefix, buttonText };
+};
+
 const getActivity = (): SetActivity => {
   const presence: SetActivity = { ...defaultPresence };
 
@@ -105,26 +130,6 @@ const getActivity = (): SetActivity => {
   }
 
   return presence;
-
-  function getFromStore() {
-    const includeTimestamps =
-      settingsStore.get<string, boolean>(settings.discord.includeTimestamps) ?? true;
-    const detailsPrefix =
-      settingsStore.get<string, string>(settings.discord.detailsPrefix) ?? "Listening to ";
-    const buttonText =
-      settingsStore.get<string, string>(settings.discord.buttonText) ?? "Play on TIDAL";
-
-    return { includeTimestamps, detailsPrefix, buttonText };
-  }
-
-  /**
-   * Pad a string using spaces to at least 2 characters
-   * @param input string to pad with 2 characters
-   * @returns
-   */
-  function pad(input: string): string {
-    return input.padEnd(2, " ");
-  }
 
   function setPresenceFromMediaInfo(detailsPrefix: string, buttonText: string) {
     // discord requires a minimum of 2 characters
