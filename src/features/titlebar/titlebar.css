@@ -1,3 +1,4 @@
+/* should be a sass file, too lazy to figure out if it all works without tweaking now :) */
 /*
  * Styles for the injected custom titlebar. This is a real stylesheet (read from
  * disk and applied via Chromium-level `insertCSS`) rather than an inline string,
@@ -52,51 +53,50 @@
 
   /* The whole bar is a drag handle for the frameless window... */
   -webkit-app-region: drag;
+}
 
-  .thf-title {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-  }
+#tidal-hifi-titlebar .thf-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
 
-  .thf-controls {
-    display: flex;
-    gap: 2px;
+#tidal-hifi-titlebar .thf-controls {
+  display: flex;
+  gap: 2px;
+  /* ...but the buttons must stay clickable, so opt them out of dragging. */
+  -webkit-app-region: no-drag;
+}
 
-    /* ...but the buttons must stay clickable, so opt them out of dragging. */
-    -webkit-app-region: no-drag;
-  }
+#tidal-hifi-titlebar .thf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
 
-  .thf-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 28px;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    transition:
-      background 0.12s ease,
-      color 0.12s ease;
+#tidal-hifi-titlebar .thf-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
 
-    &:hover {
-      background: rgba(255, 255, 255, 0.12);
-    }
+#tidal-hifi-titlebar .thf-btn.thf-close:hover {
+  background: #e81123;
+  color: #fff;
+}
 
-    &.thf-close:hover {
-      background: #e81123;
-      color: #fff;
-    }
-
-    svg {
-      width: 12px;
-      height: 12px;
-      pointer-events: none;
-    }
-  }
+#tidal-hifi-titlebar .thf-btn svg {
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
 }
