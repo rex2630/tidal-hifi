@@ -50,13 +50,15 @@ jobs:
           sudo apt-get install -y rpm fakeroot dpkg
       - name: Install Snapcraft (snap target only)
         if: matrix.target == 'snap'
-        uses: snapcore/action-build@v1
+        run: |
+          sudo snap install snapcraft --classic
+          sudo snap install lxd
+          sudo lxd init --auto
       - name: Install Arch build tools (arch target only)
         if: matrix.target == 'arch'
         run: sudo apt-get install -y binutils
       - run: npm install
       - name: Build ${{ matrix.target }}
-        if: matrix.target != 'snap'
         run: npm run ${{ matrix.script }}
       - uses: actions/upload-artifact@v4
         with:
