@@ -24,6 +24,7 @@ import { MprisService } from "./features/mpris/mprisService";
 import { SharingService } from "./features/sharingService/sharingService";
 import { injectThemeCss, injectThemeCssIfChanged } from "./features/theming/theming";
 import { tidalUrl } from "./features/tidal/url";
+import { injectTitlebarStyles } from "./features/titlebar/titlebar";
 import { isWindowTransparencyEnabled } from "./features/windowTransparency/windowTransparency";
 import type { MediaInfo } from "./models/mediaInfo";
 import { MediaStatus } from "./models/mediaStatus";
@@ -208,6 +209,8 @@ function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
     // (themed) CSS is transparent — defeating the point of a transparent theme.
     backgroundColor: transparent ? "#00000000" : backgroundColor,
     autoHideMenuBar: true,
+    // Frameless so the injected custom titlebar replaces the native chrome.
+    frame: false,
     transparent,
     webPreferences: {
       ...windowPreferences,
@@ -224,6 +227,8 @@ function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
   // This survives SPA hydration / DOM replacement that wipes preload-injected <style> elements.
   mainWindow.webContents.on("did-finish-load", () => {
     injectThemeCss(app, mainWindow.webContents);
+    // Same lifecycle hook, same technique: paint the custom titlebar.
+    injectTitlebarStyles(mainWindow.webContents);
   });
 
   // find the custom protocol argument
@@ -513,6 +518,23 @@ ipcMain.on(globalEvents.restartApp, () => {
 
 ipcMain.on(globalEvents.quit, () => {
   gracefulExit();
+});
+
+ipcMain.on(globalEvents.titlebarMinimize, () => {
+  mainWindow?.minimize();
+});
+
+ipcMain.on(globalEvents.titlebarMaximizeToggle, () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow.maximize();
+  }
+});
+
+ipcMain.on(globalEvents.titlebarClose, () => {
+  mainWindow?.close();
 });
 
 ipcMain.handle(globalEvents.getUniversalLink, async (_event, url) => {

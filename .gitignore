@@ -19,3 +19,4 @@ themes
 .sass-cache
 html-exports
 .aur/
+!src/features/titlebar/titlebar.css

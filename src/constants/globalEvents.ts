@@ -22,4 +22,7 @@ export const globalEvents = {
   seek: "seek",
   setLoopState: "setLoopState",
   quit: "quit",
+  titlebarMinimize: "titlebarMinimize",
+  titlebarMaximizeToggle: "titlebarMaximizeToggle",
+  titlebarClose: "titlebarClose",
 };

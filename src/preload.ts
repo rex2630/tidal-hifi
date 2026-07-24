@@ -7,6 +7,7 @@ import { settings } from "./constants/settings";
 import { getCurrentHotkeyConfig } from "./features/hotkeys";
 import { Logger } from "./features/logger";
 import { getTrackURL, getUniversalLink } from "./features/tidal/url";
+import { mountTitlebar } from "./features/titlebar/titlebarView";
 import { getEmptyMediaInfo, type MediaInfo } from "./models/mediaInfo";
 import { RepeatState, type RepeatStateType } from "./models/repeatState";
 import { isSeekEvent } from "./models/seekEvent";
@@ -22,6 +23,10 @@ import { ReduxController } from "./TidalControllers/ReduxController/ReduxControl
 import type { TidalController } from "./TidalControllers/TidalController";
 
 const staticTitle = "TIDAL Hi-Fi";
+
+// Build the draggable custom titlebar in this (isolated-world) preload, so no
+// window action is exposed to page scripts and no executeJavaScript is needed.
+mountTitlebar();
 
 let currentSong = "";
 
