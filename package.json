@@ -31,7 +31,7 @@
     "lint": "oxlint && npm run format:check",
     "lint-fix": "oxlint --fix && npm run format",
     "builder": "electron-builder --publish=never",
-    "sass": "sass src/pages/settings/styles/settings.scss ./ts-dist/pages/settings/styles/settings.css && sass --no-source-map src/themes:themes"
+    "sass": "sass src/pages/settings/styles/settings.scss ./ts-dist/pages/settings/styles/settings.css && sass --no-source-map src/themes:themes && sass --no-source-map src/features/titlebar/titlebar.scss ts-dist/features/titlebar/titlebar.css"
   },
   "keywords": [
     "electron",
