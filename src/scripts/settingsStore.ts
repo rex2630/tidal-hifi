@@ -85,6 +85,7 @@ const defaultSettings = {
   skippedTracks: [""],
   startMinimized: false,
   staticWindowTitle: false,
+  showTitlebar: true,
   theme: "none",
   trayIcon: true,
   trayIconPath: "",
