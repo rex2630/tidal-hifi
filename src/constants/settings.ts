@@ -72,6 +72,7 @@ export const settings = {
   trayIconPath: "trayIconPath",
   updateFrequency: "updateFrequency",
   windowTransparency: "windowTransparency",
+  showTitlebar: "showTitlebar",
   windowBounds: {
     root: "windowBounds",
     width: "windowBounds.width",
