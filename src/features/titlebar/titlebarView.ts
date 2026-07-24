@@ -77,6 +77,7 @@ const mount = (): void => {
  * main process (see titlebar.ts) so it survives DOM replacement.
  */
 export const mountTitlebar = (): void => {
+  if (!enabled) return;
   const start = () => {
     mount();
     // Tidal is a React SPA that re-renders <body>; re-mount if it's stripped out.
