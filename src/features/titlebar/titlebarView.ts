@@ -76,17 +76,18 @@ const mount = (): void => {
  * `executeJavaScript` string evaluation. Styling is applied separately from the
  * main process (see titlebar.ts) so it survives DOM replacement.
  */
-export const mountTitlebar = (): void => {
+export const mountTitlebar = (enabled = true): void => {
   if (!enabled) return;
+
   const start = () => {
     mount();
-    // Tidal is a React SPA that re-renders <body>; re-mount if it's stripped out.
     new MutationObserver(mount).observe(document.body, { childList: true });
   };
 
   if (document.body) {
     start();
   } else {
+    // Tidal is a React SPA that re-renders <body>; re-mount if it's stripped out.
     window.addEventListener("DOMContentLoaded", start, { once: true });
   }
 };
