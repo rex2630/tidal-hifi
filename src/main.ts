@@ -486,9 +486,9 @@ ipcMain.on(globalEvents.storeChanged, () => {
   const showTitlebar = settingsStore.get(settings.showTitlebar) !== false;
 
   if (showTitlebar) {
-    await injectTitlebarStyles(mainWindow.webContents);
+    injectTitlebarStyles(mainWindow.webContents);
   } else {
-    await removeTitlebarStyles(mainWindow.webContents);
+    removeTitlebarStyles(mainWindow.webContents);
   }
 
   // Notify the main renderer so it can re-apply settings that are otherwise only
