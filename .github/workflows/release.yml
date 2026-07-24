@@ -1,6 +1,8 @@
 name: Release CI
+
 permissions:
   contents: write
+
 on:
   push:
     tags:
@@ -11,14 +13,19 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - name: update apt
+      - name: Update apt
         run: sudo apt-get update
-      - name: Install libarchive-tools
-        run: sudo apt-get install -y libarchive-tools
-      - uses: actions/checkout@master
-      - uses: actions/setup-node@master
+
+      - name: Install Linux packaging tools
+        run: sudo apt-get install -y libarchive-tools rpm zip
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 24.12.0
+          cache: npm
+
       - run: npm install
       - run: npm run lint
       - run: npm run compile
@@ -27,99 +34,154 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     steps:
-      - name: update apt
+      - name: Update apt
         run: sudo apt-get update
-      - name: Install libarchive-tools
-        run: sudo apt-get install -y libarchive-tools
-      - uses: actions/checkout@master
-      - uses: actions/setup-node@master
+
+      - name: Install Linux packaging tools
+        run: sudo apt-get install -y libarchive-tools rpm zip
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 24.12.0
+          cache: npm
+
       - run: npm install
-      - run: npm run build
+
+      - name: Build Linux packages
+        run: npm run build
+
       - name: Build unpacked and zip it
         run: |
           npm run build-unpacked
           cd dist/linux-unpacked
           zip -r ../tidal-hifi-unpacked-linux.zip .
           cd ../..
+
       - uses: actions/upload-artifact@v4
         with:
           name: linux-builds
-          path: dist/
+          path: |
+            dist/*.deb
+            dist/*.rpm
+            dist/*.pacman
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.freebsd
+          if-no-files-found: warn
 
   build_on_mac:
     needs: quality
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/setup-node@master
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 24.12.0
+          cache: npm
+
       - run: npm install
-      - run: npm run build-mac
+
+      - name: Build macOS package
+        run: npm run build-mac
+
       - name: Zip the .app bundle
         run: |
-          cd dist/mac-arm64
-          zip -r ../tidal-hifi-mac-arm64-app.zip tidal-hifi.app
-          cd ../..
+          if [ -d "dist/mac-arm64/tidal-hifi.app" ]; then
+            cd dist/mac-arm64
+            ditto -c -k --sequesterRsrc --keepParent tidal-hifi.app ../tidal-hifi-mac-arm64-app.zip
+            cd ../..
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: mac-builds
-          path: dist/
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/tidal-hifi-mac-arm64-app.zip
+          if-no-files-found: warn
 
   build_on_windows:
     needs: quality
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/setup-node@master
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 24.12.0
+          cache: npm
+
       - run: npm install
-      - run: npm run build-win
+
+      - name: Build Windows package
+        run: npm run build-win
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-builds
-          path: dist/*.msi
+          path: |
+            dist/*.msi
+            dist/*.exe
+          if-no-files-found: warn
 
   build_and_publish_snap:
     needs: quality
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: update apt
+      - name: Update apt
         run: sudo apt-get update
-      - name: Install libarchive-tools
-        run: sudo apt-get install -y libarchive-tools
-      - uses: actions/checkout@master
-      - uses: actions/setup-node@master
+
+      - name: Install Linux packaging tools
+        run: sudo apt-get install -y libarchive-tools zip
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 24.12.0
+          cache: npm
+
       - run: npm install
       - run: npm run build-snap
+
       - name: Find snap file
         id: find_snap
-        run: echo "snap_file=$(find dist -name '*.snap' -type f)" >> $GITHUB_OUTPUT
+        shell: bash
+        run: |
+          SNAP_FILE=$(find dist -name '*.snap' -type f | head -n 1)
+          echo "snap_file=$SNAP_FILE" >> "$GITHUB_OUTPUT"
+
       - name: Publish to Snap Store
+        if: steps.find_snap.outputs.snap_file != ''
         uses: canonical/action-publish@v1
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         with:
           snap: ${{ steps.find_snap.outputs.snap_file }}
           release: stable
+
       - uses: actions/upload-artifact@v4
         with:
           name: snap-builds
           path: dist/*.snap
+          if-no-files-found: warn
 
   create_release:
     if: startsWith(github.ref, 'refs/tags/')
     needs:
-      [build_on_linux, build_on_mac, build_on_windows, build_and_publish_snap]
+      - build_on_linux
+      - build_on_mac
+      - build_on_windows
+      - build_and_publish_snap
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
@@ -134,6 +196,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           generate_release_notes: true
+          fail_on_unmatched_files: false
           files: |
             artifacts/linux-builds/*.deb
             artifacts/linux-builds/*.rpm
