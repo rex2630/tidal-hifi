@@ -40,24 +40,35 @@ const build = (): HTMLElement => {
   const bar = document.createElement("div");
   bar.id = BAR_ID;
 
+  const isMac = process.platform === "darwin";
+  if (isMac) {
+    bar.classList.add("thf-macos");
+  }
+
   const title = document.createElement("span");
   title.className = "thf-title";
   title.textContent = "TIDAL Hi-Fi";
 
   const controls = document.createElement("div");
-  controls.className = "thf-controls";
-  controls.append(
-    createButton("Minimize", ICONS.minimize, globalEvents.titlebarMinimize),
-    createButton("Maximize", ICONS.maximize, globalEvents.titlebarMaximizeToggle),
-    createButton("Close", ICONS.close, globalEvents.titlebarClose, "thf-close"),
-  );
 
-  bar.append(title, controls);
+  if (!isMac) {
+    controls.className = "thf-controls";
+    controls.append(
+      createButton("Minimize", ICONS.minimize, globalEvents.titlebarMinimize),
+      createButton("Maximize", ICONS.maximize, globalEvents.titlebarMaximizeToggle),
+      createButton("Close", ICONS.close, globalEvents.titlebarClose, "thf-close"),
+    );
+    bar.append(title, controls);
+  } else {
+    bar.append(title);
+  }
 
   // Double-clicking the drag area toggles maximize, matching native titlebars.
   bar.addEventListener("dblclick", (event) => {
     if (event.target instanceof Element && event.target.closest(".thf-controls")) return;
-    ipcRenderer.send(globalEvents.titlebarMaximizeToggle);
+    if (process.platform !== "darwin") {
+      ipcRenderer.send(globalEvents.titlebarMaximizeToggle);
+    }
   });
 
   return bar;
