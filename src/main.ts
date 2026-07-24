@@ -197,6 +197,7 @@ function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
   // Transparency is opt-in and never enabled on macOS (it caused issues there).
   const transparent = isWindowTransparencyEnabled();
   const showCustomTitlebar = settingsStore.get(settings.showTitlebar) !== false;
+  const isMac = process.platform === "darwin";
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -211,7 +212,9 @@ function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
     backgroundColor: transparent ? "#00000000" : backgroundColor,
     autoHideMenuBar: true,
     // Frameless so the injected custom titlebar replaces the native chrome.
-    frame: !showCustomTitlebar,
+    frame: isMac ? true : !showCustomTitlebar,
+    titleBarStyle: isMac && showCustomTitlebar ? "hiddenInset" : "default",
+    trafficLightPosition: isMac && showCustomTitlebar ? { x: 14, y: 13 } : undefined, 
     transparent,
     webPreferences: {
       ...windowPreferences,
