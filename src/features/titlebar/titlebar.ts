@@ -12,7 +12,7 @@ import { Logger } from "../logger";
 let cachedCss: string | null = null;
 const getTitlebarCss = (): string => {
   if (cachedCss === null) {
-    cachedCss = readFileSync(path.join(__dirname, "titlebar.scss"), "utf-8");
+    cachedCss = readFileSync(path.join(__dirname, "titlebar.css"), "utf-8");
   }
   return cachedCss;
 };
