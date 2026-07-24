@@ -91,3 +91,7 @@ export const mountTitlebar = (enabled = true): void => {
     window.addEventListener("DOMContentLoaded", start, { once: true });
   }
 };
+
+export const unmountTitlebar = (): void => {
+  document.getElementById(BAR_ID)?.remove();
+};
