@@ -24,8 +24,12 @@ jobs:
 
   create_release:
     needs:
-      [build_on_windows]
-    if: needs.build_on_windows.result == 'success'
+      - build_on_windows
+      - build_on_linux
+      - build_on_mac
+    if: |
+      always() &&
+      needs.build_on_windows.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -49,3 +53,8 @@ jobs:
           generate_release_notes: true
           files: |
             artifacts/windows-builds/*.msi
+            artifacts/linux-deb-builds/*.deb
+            artifacts/linux-rpm-builds/*.rpm
+            artifacts/linux-snap-builds/*.snap
+            artifacts/linux-arch-builds/*.pacman
+            artifacts/mac-builds/*.dmg
