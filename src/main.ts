@@ -24,7 +24,7 @@ import { MprisService } from "./features/mpris/mprisService";
 import { SharingService } from "./features/sharingService/sharingService";
 import { injectThemeCss, injectThemeCssIfChanged } from "./features/theming/theming";
 import { tidalUrl } from "./features/tidal/url";
-import { injectTitlebarStyles } from "./features/titlebar/titlebar";
+import { injectTitlebarStyles, removeTitlebarStyles } from "./features/titlebar/titlebar";
 import { isWindowTransparencyEnabled } from "./features/windowTransparency/windowTransparency";
 import type { MediaInfo } from "./models/mediaInfo";
 import { MediaStatus } from "./models/mediaStatus";
@@ -483,9 +483,17 @@ ipcMain.on(globalEvents.storeChanged, () => {
   injectThemeCssIfChanged(app, mainWindow.webContents);
   refreshSettingsWindowTheme();
 
+  const showTitlebar = settingsStore.get(settings.showTitlebar) !== false;
+
+  if (showTitlebar) {
+    await injectTitlebarStyles(mainWindow.webContents);
+  } else {
+    await removeTitlebarStyles(mainWindow.webContents);
+  }
+
   // Notify the main renderer so it can re-apply settings that are otherwise only
   // read at startup (hotkeys, window title).
-  mainWindow.webContents.send(globalEvents.storeChanged);
+  mainWindow.webContents.send(globalEvents.storeChanged, { showTitlebar });
 
   if (settingsStore.get(settings.enableDiscord) && !isRPCConnected()) {
     initRPC();
