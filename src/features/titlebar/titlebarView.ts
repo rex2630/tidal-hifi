@@ -3,6 +3,7 @@ import { ipcRenderer } from "electron";
 import { globalEvents } from "../../constants/globalEvents";
 
 const BAR_ID = "tidal-hifi-titlebar";
+let titlebarObserver: MutationObserver | null = null;
 
 const svgIcon = (paths: string): string =>
   `<svg viewBox="0 0 12 12" fill="none" aria-hidden="true">${paths}</svg>`;
@@ -81,7 +82,13 @@ export const mountTitlebar = (enabled = true): void => {
 
   const start = () => {
     mount();
-    new MutationObserver(mount).observe(document.body, { childList: true });
+
+    if (!titlebarObserver && document.body) {
+      titlebarObserver = new MutationObserver(() => {
+        mount();
+      });
+      titlebarObserver.observe(document.body, { childList: true });
+    }
   };
 
   if (document.body) {
@@ -93,5 +100,7 @@ export const mountTitlebar = (enabled = true): void => {
 };
 
 export const unmountTitlebar = (): void => {
+  titlebarObserver?.disconnect();
+  titlebarObserver = null;
   document.getElementById(BAR_ID)?.remove();
 };
