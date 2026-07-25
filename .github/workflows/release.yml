@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - windows-test
+      - drm-fix
   workflow_dispatch:
 
 permissions:
