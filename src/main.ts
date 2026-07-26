@@ -196,6 +196,7 @@ function configureUserAgent() {
 function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
   // Transparency is opt-in and never enabled on macOS (it caused issues there).
   const transparent = isWindowTransparencyEnabled();
+  const showCustomTitlebar = settingsStore.get(settings.showCustomTitlebar);
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -228,7 +229,9 @@ function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
   mainWindow.webContents.on("did-finish-load", () => {
     injectThemeCss(app, mainWindow.webContents);
     // Same lifecycle hook, same technique: paint the custom titlebar.
-    injectTitlebarStyles(mainWindow.webContents);
+    if (settingsStore.get(settings.showCustomTitlebar)) {
+      injectTitlebarStyles(mainWindow.webContents);
+    }
   });
 
   // find the custom protocol argument
