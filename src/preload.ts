@@ -7,7 +7,7 @@ import { settings } from "./constants/settings";
 import { getCurrentHotkeyConfig } from "./features/hotkeys";
 import { Logger } from "./features/logger";
 import { getTrackURL, getUniversalLink } from "./features/tidal/url";
-import { mountTitlebar } from "./features/titlebar/titlebarView";
+import { mountCustomTitlebar, unmountCustomTitlebar } from "./features/titlebar/titlebarView";
 import { getEmptyMediaInfo, type MediaInfo } from "./models/mediaInfo";
 import { RepeatState, type RepeatStateType } from "./models/repeatState";
 import { isSeekEvent } from "./models/seekEvent";
@@ -238,6 +238,12 @@ function reapplyLiveSettings() {
   removeHotkeys();
   addHotKeys();
   applyWindowTitle();
+
+  if (settingsStore.get(settings.showCustomTitlebar)) {
+    mountCustomTitlebar();
+  } else {
+    unmountCustomTitlebar();
+  }
 }
 
 /**

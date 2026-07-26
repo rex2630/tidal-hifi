@@ -43,3 +43,15 @@ export const injectTitlebarStyles = async (webContents: WebContents): Promise<vo
     Logger.log("Failed to inject custom titlebar styles", { error });
   }
 };
+
+export const removeTitlebarStyles = async (webContents: WebContents): Promise<void> => {
+  try {
+    const previousKey = insertedCssKey.get(webContents);
+    if (!previousKey) return;
+
+    await webContents.removeInsertedCSS(previousKey);
+    insertedCssKey.delete(webContents);
+  } catch (error) {
+    Logger.log("Failed to remove custom titlebar styles", { error });
+  }
+};
