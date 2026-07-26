@@ -3,7 +3,6 @@ name: Release CI
 on:
   push:
     branches:
-      - windows-test
       - drm-fix
   workflow_dispatch:
 
@@ -13,6 +12,10 @@ permissions:
 jobs:
   build_on_windows:
     runs-on: windows-latest
+    env:
+      EVS_NO_ASK: "1"
+      EVS_ACCOUNT_NAME: ${{ secrets.EVS_ACCOUNT_NAME }}
+      EVS_PASSWD: ${{ secrets.EVS_PASSWD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -21,16 +24,34 @@ jobs:
           node-version: 24.12.0
           cache: npm
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install EVS client
+        run: python -m pip install --upgrade pip castlabs-evs
+
       - run: npm ci
-      - run: npm run build-win
+
+      - name: Build Windows app
+        run: npm run build-win
+
+      - name: VMP sign Windows package
+        run: python -m castlabs_evs.vmp sign-pkg --persistent dist/win-unpacked
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-builds
-          path: dist/*.msi
+          path: |
+            dist/*.msi
+            dist/win-unpacked/**
 
   build_on_mac:
     runs-on: macos-latest
+    env:
+      EVS_NO_ASK: "1"
+      EVS_ACCOUNT_NAME: ${{ secrets.EVS_ACCOUNT_NAME }}
+      EVS_PASSWD: ${{ secrets.EVS_PASSWD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,13 +60,27 @@ jobs:
           node-version: 24.12.0
           cache: npm
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install EVS client
+        run: python3 -m pip install --upgrade pip castlabs-evs
+
       - run: npm ci
-      - run: npm run build-mac
+
+      - name: Build macOS app
+        run: npm run build-mac
+
+      - name: VMP sign macOS package
+        run: python3 -m castlabs_evs.vmp sign-pkg --persistent dist/mac
 
       - uses: actions/upload-artifact@v4
         with:
           name: mac-builds
-          path: dist/*.dmg
+          path: |
+            dist/*.dmg
+            dist/mac/**
 
   create_release:
     needs:
@@ -56,6 +91,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.12.0
 
       - name: Get version from package.json
         id: version
