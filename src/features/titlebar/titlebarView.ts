@@ -3,6 +3,7 @@ import { ipcRenderer } from "electron";
 import { globalEvents } from "../../constants/globalEvents";
 
 const BAR_ID = "tidal-hifi-titlebar";
+let titlebarObserver: MutationObserver | null = null;
 
 const svgIcon = (paths: string): string =>
   `<svg viewBox="0 0 12 12" fill="none" aria-hidden="true">${paths}</svg>`;
@@ -76,11 +77,16 @@ const mount = (): void => {
  * `executeJavaScript` string evaluation. Styling is applied separately from the
  * main process (see titlebar.ts) so it survives DOM replacement.
  */
-export const mountTitlebar = (): void => {
+export const mountCustomTitlebar = (): void => {
   const start = () => {
     mount();
     // Tidal is a React SPA that re-renders <body>; re-mount if it's stripped out.
-    new MutationObserver(mount).observe(document.body, { childList: true });
+    if (!titlebarObserver && document.body) {
+      titlebarObserver = new MutationObserver(() => {
+        mount();
+      });
+      titlebarObserver.observe(document.body, { childList: true });
+    }
   };
 
   if (document.body) {
@@ -88,4 +94,10 @@ export const mountTitlebar = (): void => {
   } else {
     window.addEventListener("DOMContentLoaded", start, { once: true });
   }
+};
+
+export const unmountCustomTitlebar = (): void => {
+  titlebarObserver?.disconnect();
+  titlebarObserver = null;
+  document.getElementById(BAR_ID)?.remove();
 };
