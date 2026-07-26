@@ -1,22 +1,24 @@
 name: Release CI
 
-on:
-  push:
-    branches:
-      - drm-fix
-  workflow_dispatch:
-
 permissions:
   contents: write
 
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+
 jobs:
-  build_on_windows:
-    runs-on: windows-latest
-    env:
-      EVS_NO_ASK: "1"
-      EVS_ACCOUNT_NAME: ${{ secrets.EVS_ACCOUNT_NAME }}
-      EVS_PASSWD: ${{ secrets.EVS_PASSWD }}
+  quality:
+    runs-on: ubuntu-latest
     steps:
+      - name: Update apt
+        run: sudo apt-get update
+
+      - name: Install Linux packaging tools
+        run: sudo apt-get install -y libarchive-tools rpm zip
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -24,29 +26,54 @@ jobs:
           node-version: 24.12.0
           cache: npm
 
-      - uses: actions/setup-python@v5
+      - run: npm install
+      - run: npm run lint
+      - run: npm run compile
+
+  build_on_linux:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update apt
+        run: sudo apt-get update
+
+      - name: Install Linux packaging tools
+        run: sudo apt-get install -y libarchive-tools rpm zip
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.11"
+          node-version: 24.12.0
+          cache: npm
 
-      - name: Install EVS client
-        run: python -m pip install --upgrade pip castlabs-evs
+      - run: npm install
 
-      - run: npm ci
+      - name: Build Linux packages
+        run: npm run build
 
-      - name: Build Windows app
-        run: npm run build-win
-
-      - name: VMP sign Windows package
-        run: python -m castlabs_evs.vmp sign-pkg --persistent dist/win-unpacked
+      - name: Build unpacked and zip it
+        run: |
+          npm run build-unpacked
+          cd dist/linux-unpacked
+          zip -r ../tidal-hifi-unpacked-linux.zip .
+          cd ../..
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-builds
+          name: linux-builds
           path: |
-            dist/*.msi
-            dist/win-unpacked/**
+            dist/*.deb
+            dist/*.rpm
+            dist/*.pacman
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.freebsd
+          if-no-files-found: warn
 
   build_on_mac:
+    needs: quality
     runs-on: macos-latest
     env:
       EVS_NO_ASK: "1"
@@ -67,38 +94,72 @@ jobs:
       - name: Install EVS client
         run: python3 -m pip install --upgrade pip castlabs-evs
 
-      - run: npm ci
+      - run: npm install
 
-      - name: Build macOS app
+      - name: Build macOS package
         run: npm run build-mac
 
-      - name: VMP sign macOS package
-        run: python3 -m castlabs_evs.vmp sign-pkg --persistent dist/mac
+      - name: Zip the .app bundle
+        run: |
+          if [ -d "dist/mac-arm64/tidal-hifi.app" ]; then
+            cd dist/mac-arm64
+            ditto -c -k --sequesterRsrc --keepParent tidal-hifi.app ../tidal-hifi-mac-arm64-app.zip
+            cd ../..
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
           name: mac-builds
           path: |
             dist/*.dmg
-            dist/mac/**
+            dist/*.zip
+            dist/tidal-hifi-mac-arm64-app.zip
+          if-no-files-found: warn
 
-  create_release:
-    needs:
-      - build_on_windows
-      - build_on_mac
-    if: always() && needs.build_on_windows.result == 'success' && needs.build_on_mac.result == 'success'
-    runs-on: ubuntu-latest
-
+  build_on_windows:
+    needs: quality
+    runs-on: windows-latest
+    env:
+      EVS_NO_ASK: "1"
+      EVS_ACCOUNT_NAME: ${{ secrets.EVS_ACCOUNT_NAME }}
+      EVS_PASSWD: ${{ secrets.EVS_PASSWD }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24.12.0
+          cache: npm
 
-      - name: Get version from package.json
-        id: version
-        run: echo 'version='"$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install EVS client
+        run: python -m pip install --upgrade pip castlabs-evs
+
+      - run: npm install
+
+      - name: Build Windows package
+        run: npm run build-win
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-builds
+          path: |
+            dist/*.msi
+            dist/*.exe
+          if-no-files-found: warn
+
+  create_release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs:
+      - build_on_linux
+      - build_on_mac
+      - build_on_windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
@@ -110,9 +171,16 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: ${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           generate_release_notes: true
+          fail_on_unmatched_files: false
           files: |
-            artifacts/windows-builds/*.msi
+            artifacts/linux-builds/*.deb
+            artifacts/linux-builds/*.rpm
+            artifacts/linux-builds/*.pacman
+            artifacts/linux-builds/*.AppImage
             artifacts/mac-builds/*.dmg
+            artifacts/windows-builds/*.msi
+          commit_message: Update tidal-hifi-git to ${{ github.ref_name }}
+          ssh_keyscan_types: rsa,ecdsa,ed25519
