@@ -54,8 +54,8 @@ const build = (): HTMLElement => {
     controls.className = "thf-controls";
     controls.append(
       createButton("Minimize", ICONS.minimize, globalEvents.titlebarMinimize),
-                    createButton("Maximize", ICONS.maximize, globalEvents.titlebarMaximizeToggle),
-                    createButton("Close", ICONS.close, globalEvents.titlebarClose, "thf-close"),
+      createButton("Maximize", ICONS.maximize, globalEvents.titlebarMaximizeToggle),
+      createButton("Close", ICONS.close, globalEvents.titlebarClose, "thf-close"),
     );
     bar.append(title, controls);
   } else {
