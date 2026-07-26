@@ -1,4 +1,6 @@
 extends: ./build/electron-builder.base.yml
+afterSign: build/after-sign.js
+
 linux:
   target:
     - pacman
@@ -8,6 +10,7 @@ linux:
     - AppImage
     - snap
     - freebsd
+
 win:
   target: msi
   icon: icon.png
