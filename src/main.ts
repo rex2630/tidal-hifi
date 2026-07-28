@@ -24,6 +24,7 @@ import { MprisService } from "./features/mpris/mprisService";
 import { SharingService } from "./features/sharingService/sharingService";
 import { injectThemeCss, injectThemeCssIfChanged } from "./features/theming/theming";
 import { tidalUrl } from "./features/tidal/url";
+import { injectTitlebarStyles } from "./features/titlebar/titlebar";
 import { isWindowTransparencyEnabled } from "./features/windowTransparency/windowTransparency";
 import type { MediaInfo } from "./models/mediaInfo";
 import { MediaStatus } from "./models/mediaStatus";
@@ -195,6 +196,8 @@ function configureUserAgent() {
 function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
   // Transparency is opt-in and never enabled on macOS (it caused issues there).
   const transparent = isWindowTransparencyEnabled();
+  const showCustomTitlebar = settingsStore.get(settings.showCustomTitlebar);
+  const isMac = process.platform === "darwin";
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -208,6 +211,15 @@ function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
     // (themed) CSS is transparent — defeating the point of a transparent theme.
     backgroundColor: transparent ? "#00000000" : backgroundColor,
     autoHideMenuBar: true,
+    // Custom titlebar per platform (opt-in, applied at window creation —
+    // toggling the setting takes effect after a restart):
+    //  - Windows/Linux: go fully frameless; our bar draws its own min/max/close.
+    //  - macOS: keep `frame: true` and use `hiddenInset` so the native traffic
+    //    lights still render (a frameless macOS window loses them); our bar only
+    //    draws the title and leaves room for the lights.
+    frame: isMac ? true : !showCustomTitlebar,
+    titleBarStyle: isMac && showCustomTitlebar ? "hiddenInset" : "default",
+    trafficLightPosition: isMac && showCustomTitlebar ? { x: 14, y: 13 } : undefined,
     transparent,
     webPreferences: {
       ...windowPreferences,
@@ -224,7 +236,20 @@ function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
   // This survives SPA hydration / DOM replacement that wipes preload-injected <style> elements.
   mainWindow.webContents.on("did-finish-load", () => {
     injectThemeCss(app, mainWindow.webContents);
+    // Same lifecycle hook, same technique: paint the custom titlebar.
+    if (settingsStore.get(settings.showCustomTitlebar)) {
+      injectTitlebarStyles(mainWindow.webContents);
+    }
   });
+
+  // Keep the custom titlebar's maximize/restore button in sync with the window.
+  const sendMaximizeState = () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(globalEvents.titlebarMaximizeChanged, mainWindow.isMaximized());
+    }
+  };
+  mainWindow.on("maximize", sendMaximizeState);
+  mainWindow.on("unmaximize", sendMaximizeState);
 
   // find the custom protocol argument
   const customProtocolUrl = getCustomProtocolUrl(process.argv);
@@ -513,6 +538,27 @@ ipcMain.on(globalEvents.restartApp, () => {
 
 ipcMain.on(globalEvents.quit, () => {
   gracefulExit();
+});
+
+ipcMain.on(globalEvents.titlebarMinimize, () => {
+  mainWindow?.minimize();
+});
+
+ipcMain.on(globalEvents.titlebarMaximizeToggle, () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow.maximize();
+  }
+});
+
+ipcMain.on(globalEvents.titlebarClose, () => {
+  mainWindow?.close();
+});
+
+ipcMain.handle(globalEvents.titlebarGetMaximized, () => {
+  return mainWindow?.isMaximized() ?? false;
 });
 
 ipcMain.handle(globalEvents.getUniversalLink, async (_event, url) => {
