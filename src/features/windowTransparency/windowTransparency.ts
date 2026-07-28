@@ -9,5 +9,4 @@ import { settingsStore } from "../../scripts/settingsStore";
  * settings and magazine) share this check so they stay in sync.
  */
 export const isWindowTransparencyEnabled = (): boolean =>
-  process.platform !== "darwin" &&
   Boolean(settingsStore?.get<string, boolean>(settings.windowTransparency));
