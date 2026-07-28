@@ -24,7 +24,7 @@ import { MprisService } from "./features/mpris/mprisService";
 import { SharingService } from "./features/sharingService/sharingService";
 import { injectThemeCss, injectThemeCssIfChanged } from "./features/theming/theming";
 import { tidalUrl } from "./features/tidal/url";
-import { injectTitlebarStyles, removeTitlebarStyles } from "./features/titlebar/titlebar";
+import { injectTitlebarStyles } from "./features/titlebar/titlebar";
 import { isWindowTransparencyEnabled } from "./features/windowTransparency/windowTransparency";
 import type { MediaInfo } from "./models/mediaInfo";
 import { MediaStatus } from "./models/mediaStatus";
@@ -211,7 +211,12 @@ function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
     // (themed) CSS is transparent — defeating the point of a transparent theme.
     backgroundColor: transparent ? "#00000000" : backgroundColor,
     autoHideMenuBar: true,
-    // Frameless so the injected custom titlebar replaces the native chrome.
+    // Custom titlebar per platform (opt-in, applied at window creation —
+    // toggling the setting takes effect after a restart):
+    //  - Windows/Linux: go fully frameless; our bar draws its own min/max/close.
+    //  - macOS: keep `frame: true` and use `hiddenInset` so the native traffic
+    //    lights still render (a frameless macOS window loses them); our bar only
+    //    draws the title and leaves room for the lights.
     frame: isMac ? true : !showCustomTitlebar,
     titleBarStyle: isMac && showCustomTitlebar ? "hiddenInset" : "default",
     trafficLightPosition: isMac && showCustomTitlebar ? { x: 14, y: 13 } : undefined,
@@ -236,6 +241,15 @@ function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
       injectTitlebarStyles(mainWindow.webContents);
     }
   });
+
+  // Keep the custom titlebar's maximize/restore button in sync with the window.
+  const sendMaximizeState = () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(globalEvents.titlebarMaximizeChanged, mainWindow.isMaximized());
+    }
+  };
+  mainWindow.on("maximize", sendMaximizeState);
+  mainWindow.on("unmaximize", sendMaximizeState);
 
   // find the custom protocol argument
   const customProtocolUrl = getCustomProtocolUrl(process.argv);
@@ -487,12 +501,6 @@ ipcMain.on(globalEvents.storeChanged, () => {
   injectThemeCssIfChanged(app, mainWindow.webContents);
   refreshSettingsWindowTheme();
 
-  if (settingsStore.get(settings.showCustomTitlebar)) {
-    injectTitlebarStyles(mainWindow.webContents);
-  } else {
-    removeTitlebarStyles(mainWindow.webContents);
-  }
-
   // Notify the main renderer so it can re-apply settings that are otherwise only
   // read at startup (hotkeys, window title).
   mainWindow.webContents.send(globalEvents.storeChanged);
@@ -547,6 +555,10 @@ ipcMain.on(globalEvents.titlebarMaximizeToggle, () => {
 
 ipcMain.on(globalEvents.titlebarClose, () => {
   mainWindow?.close();
+});
+
+ipcMain.handle(globalEvents.titlebarGetMaximized, () => {
+  return mainWindow?.isMaximized() ?? false;
 });
 
 ipcMain.handle(globalEvents.getUniversalLink, async (_event, url) => {

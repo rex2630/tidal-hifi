@@ -25,4 +25,6 @@ export const globalEvents = {
   titlebarMinimize: "titlebarMinimize",
   titlebarMaximizeToggle: "titlebarMaximizeToggle",
   titlebarClose: "titlebarClose",
+  titlebarMaximizeChanged: "titlebarMaximizeChanged",
+  titlebarGetMaximized: "titlebarGetMaximized",
 };
