@@ -468,7 +468,7 @@ ipcMain.on(globalEvents.updateInfo, (_event, arg: MediaInfo) => {
     }
   }
 
-  if (arg.status === MediaStatus.playing) {
+  if (arg.status === MediaStatus.playing && settingsStore.get(settings.preventSleep)) {
     mainInhibitorId = acquireInhibitorIfInactive(mainInhibitorId);
   } else {
     releaseInhibitorIfActive(mainInhibitorId);

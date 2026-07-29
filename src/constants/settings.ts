@@ -60,6 +60,7 @@ export const settings = {
   mpris: "mpris",
   notifications: "notifications",
   playBackControl: "playBackControl",
+  preventSleep: "preventSleep",
   singleInstance: "singleInstance",
   skipArtists: "skipArtists",
   skippedArtists: "skippedArtists",

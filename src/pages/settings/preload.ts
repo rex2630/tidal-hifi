@@ -68,6 +68,7 @@ let adBlock: HTMLInputElement,
   mpris: HTMLInputElement,
   notifications: HTMLInputElement,
   playBackControl: HTMLInputElement,
+  preventSleep: HTMLInputElement,
   port: HTMLInputElement,
   singleInstance: HTMLInputElement,
   skipArtists: HTMLInputElement,
@@ -249,6 +250,7 @@ function refreshSettings() {
     notifications.checked = settingsStore.get(settings.notifications);
     playBackControl.checked = settingsStore.get(settings.playBackControl);
     port.value = settingsStore.get(settings.apiSettings.port);
+    preventSleep.checked = settingsStore.get(settings.preventSleep);
     singleInstance.checked = settingsStore.get(settings.singleInstance);
     skipArtists.checked = settingsStore.get(settings.skipArtists);
     skippedArtists.value = settingsStore.get<string, string[]>(settings.skippedArtists).join("\n");
@@ -433,6 +435,7 @@ window.addEventListener("DOMContentLoaded", () => {
   notifications = get("notifications");
   playBackControl = get("playBackControl");
   port = get("port");
+  preventSleep = get("preventSleep");
   theme = get<HTMLSelectElement>("themesList");
   trayIcon = get("trayIcon");
   trayIconPath = get("trayIconPath");
@@ -481,6 +484,7 @@ window.addEventListener("DOMContentLoaded", () => {
   addInputListener(notifications, settings.notifications);
   addInputListener(playBackControl, settings.playBackControl);
   addInputListener(port, settings.apiSettings.port);
+  addInputListener(preventSleep, settings.preventSleep);
   addInputListener(skipArtists, settings.skipArtists);
   addTextAreaListener(skippedArtists, settings.skippedArtists);
   addInputListener(skipTracks, settings.skipTracks);
