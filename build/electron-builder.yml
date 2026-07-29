@@ -1,4 +1,7 @@
 extends: ./build/electron-builder.base.yml
+
+afterPack: ./scripts/evs-sign.js
+
 linux:
   target:
     - pacman
