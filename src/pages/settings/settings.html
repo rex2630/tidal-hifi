@@ -533,6 +533,23 @@
 
             <div class="group__option">
               <div class="group__content">
+                <h4>Downscale notification album art</h4>
+                <p>
+                  Shrink the album art sent with desktop notifications to 128×128. Some notification
+                  daemons (e.g. KDE plasma-workspace, swaync) mishandle large images over DBus, which
+                  can freeze the app or the desktop. Enable this if you experience freezes on new
+                  tracks. Leave it off to keep full-resolution album art.
+                </p>
+              </div>
+              <label class="switch">
+                <input id="notificationImageDownscaling" type="checkbox"
+                  aria-label="Downscale notification album art" />
+                <span class="switch__slider"></span>
+              </label>
+            </div>
+
+            <div class="group__option">
+              <div class="group__content">
                 <h4>Custom User Agent</h4>
                 <p>
                   Customize the browser user agent string sent to Tidal. Leave as "default" or empty to use the standard

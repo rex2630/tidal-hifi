@@ -38,6 +38,7 @@ const defaultSettings = {
     tidalUrl: "https://tidal.com",
     controllerType: "mediaSessionController",
     userAgent: values.defaultUserAgent,
+    notificationImageDownscaling: false,
   },
   api: true,
   apiSettings: {
@@ -183,7 +184,10 @@ const migrations: NonNullable<Store.Options<typeof defaultSettings>["migrations"
     buildMigration("8.0.0", migrationStore, [{ key: settings.windowTransparency, value: false }]);
   },
   "8.0.1": (migrationStore) => {
-    buildMigration("8.0.1", migrationStore, [{ key: settings.preventSleep, value: true }]);
+    buildMigration("8.0.1", migrationStore, [
+      { key: settings.preventSleep, value: true },
+      { key: settings.advanced.notificationImageDownscaling, value: false },
+    ]);
   },
 };
 

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Transparent theme
 - Added tv-mode as an advanced settings in alpha mode.
 - Added a "Prevent system sleep during playback" setting so the system/monitor can sleep even while playing - fixes #732
+- Added an advanced "Downscale notification album art" flag (off by default) that shrinks notification images to work around notification daemons that freeze on large DBus image payloads - mitigates #642
 
 ### fixes
 

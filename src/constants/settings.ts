@@ -15,6 +15,7 @@ export const settings = {
     tidalUrl: "advanced.tidalUrl",
     userAgent: "advanced.userAgent",
     controllerType: "advanced.controllerType",
+    notificationImageDownscaling: "advanced.notificationImageDownscaling",
   },
   api: "api",
   apiSettings: {

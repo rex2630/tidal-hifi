@@ -96,7 +96,8 @@ let adBlock: HTMLInputElement,
   discord_idle_text: HTMLInputElement,
   discord_using_text: HTMLInputElement,
   userAgent: HTMLInputElement,
-  controllerType: HTMLSelectElement;
+  controllerType: HTMLSelectElement,
+  notificationImageDownscaling: HTMLInputElement;
 
 async function getThemeFiles() {
   const selectElement = document.getElementById("themesList") as HTMLSelectElement;
@@ -283,6 +284,9 @@ function refreshSettings() {
     discord_using_text.value = settingsStore.get(settings.discord.usingText);
     userAgent.value = settingsStore.get(settings.advanced.userAgent);
     controllerType.value = settingsStore.get(settings.advanced.controllerType);
+    notificationImageDownscaling.checked = settingsStore.get(
+      settings.advanced.notificationImageDownscaling,
+    );
 
     // initialize hotkeys
     initializeHotkeys(hotkeySearch, hotkeysList);
@@ -460,6 +464,7 @@ window.addEventListener("DOMContentLoaded", () => {
   discord_idle_text = get("discord_idle_text");
   userAgent = get("userAgent");
   controllerType = get<HTMLSelectElement>("controllerType");
+  notificationImageDownscaling = get("notificationImageDownscaling");
   windowTransparency = get("windowTransparency");
   showCustomTitlebar = get("showCustomTitlebar");
 
@@ -519,4 +524,5 @@ window.addEventListener("DOMContentLoaded", () => {
   addInputListener(discord_using_text, settings.discord.usingText);
   addInputListener(userAgent, settings.advanced.userAgent);
   addSelectListener(controllerType, settings.advanced.controllerType);
+  addInputListener(notificationImageDownscaling, settings.advanced.notificationImageDownscaling);
 });
