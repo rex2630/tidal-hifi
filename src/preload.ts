@@ -223,9 +223,9 @@ function addFullScreenListeners() {
  */
 function applyWindowTitle() {
   const title =
-  settingsStore.get(settings.staticWindowTitle) || !currentMediaInfo.title
-  ? staticTitle
-  : `${currentMediaInfo.title} - ${currentMediaInfo.artists}`;
+    settingsStore.get(settings.staticWindowTitle) || !currentMediaInfo.title
+      ? staticTitle
+      : `${currentMediaInfo.title} - ${currentMediaInfo.artists}`;
 
   setTitle(title);
   setCustomTitlebarTitle(title);
