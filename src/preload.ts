@@ -7,7 +7,7 @@ import { settings } from "./constants/settings";
 import { getCurrentHotkeyConfig } from "./features/hotkeys";
 import { Logger } from "./features/logger";
 import { getTrackURL, getUniversalLink } from "./features/tidal/url";
-import { mountCustomTitlebar } from "./features/titlebar/titlebarView";
+import {mountCustomTitlebar, setCustomTitlebarTitle } from "./features/titlebar/titlebarView";
 import { getEmptyMediaInfo, type MediaInfo } from "./models/mediaInfo";
 import { RepeatState, type RepeatStateType } from "./models/repeatState";
 import { isSeekEvent } from "./models/seekEvent";
@@ -222,11 +222,13 @@ function addFullScreenListeners() {
  * `staticWindowTitle` toggle takes effect without a restart.
  */
 function applyWindowTitle() {
-  if (settingsStore.get(settings.staticWindowTitle) || !currentMediaInfo.title) {
-    setTitle(staticTitle);
-  } else {
-    setTitle(`${currentMediaInfo.title} - ${currentMediaInfo.artists}`);
-  }
+  const title =
+  settingsStore.get(settings.staticWindowTitle) || !currentMediaInfo.title
+  ? staticTitle
+  : `${currentMediaInfo.title} - ${currentMediaInfo.artists}`;
+
+  setTitle(title);
+  setCustomTitlebarTitle(title);
 }
 
 /**
@@ -389,9 +391,7 @@ tidalController.onMediaInfoUpdate(async (newState) => {
     currentSong = songDashArtistTitle;
 
     // update the window title with the new info
-    settingsStore.get(settings.staticWindowTitle)
-      ? setTitle(staticTitle)
-      : setTitle(`${currentMediaInfo.title} - ${currentMediaInfo.artists}`);
+    applyWindowTitle();
 
     // Download the best available image for local use
     let imageUrlToDownload = "";
