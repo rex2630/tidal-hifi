@@ -14,7 +14,7 @@ $bg-surface: #24283b !default;
 $bg-elevated: #292e42 !default;
 $bg-hover: #414868 !default;
 $bg-selection: #33467c !default;
-$bg-customtitlebar: #000000D9 !default;
+$bg-custom-titlebar: #000000D9 !default;
 
 $text-primary: #c0caf5 !default;
 $text-secondary: #a9b1d6 !default;
@@ -1182,5 +1182,5 @@ a {
 
 // Custom Titlebar
 #tidal-hifi-titlebar {
-  background: $bg-customtitlebar !important;
+  background: $bg-custom-titlebar !important;
 }
