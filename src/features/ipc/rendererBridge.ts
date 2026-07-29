@@ -42,6 +42,12 @@ export function registerRendererBridge(): void {
   );
 
   ipcMain.on(bridgeChannels.notificationShow, (_event, payload: NotificationPayload) => {
+    // Guard against systems without a notification daemon (e.g. no running
+    // org.freedesktop.Notifications service). Without this check the app can
+    // freeze on startup while the DBus proxy times out. See issue #665.
+    if (!Notification.isSupported()) {
+      return;
+    }
     try {
       currentNotification?.close();
       currentNotification = new Notification({
