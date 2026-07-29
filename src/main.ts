@@ -221,6 +221,8 @@ function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
     titleBarStyle: isMac && showCustomTitlebar ? "hiddenInset" : "default",
     trafficLightPosition: isMac && showCustomTitlebar ? { x: 14, y: 13 } : undefined,
     transparent,
+    vibrancy: isMac && transparent ? "under-window" : undefined,
+    visualEffectState: isMac && transparent ? "active" : undefined,
     webPreferences: {
       ...windowPreferences,
       preload: path.join(__dirname, "preload.js"),
