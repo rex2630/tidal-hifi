@@ -17,7 +17,7 @@
   $bg-elevated: rgba(36, 40, 56, 0.7),
   $bg-hover: rgba(60, 66, 92, 0.55),
   $bg-selection: rgba(70, 90, 130, 0.5),
-  $bg-custom-titlebar: rgba(36, 40, 56, 0.0),
+  $bg-custom-titlebar: rgba(36, 40, 56, 0),
   $text-primary: #f2f4ff,
   $text-secondary: #c8d0ea,
   $text-muted: #9aa2c7,
@@ -42,7 +42,7 @@
   $bg-elevated: rgba(36, 40, 56, 0.7),
   $bg-hover: rgba(60, 66, 92, 0.55),
   $bg-selection: rgba(70, 90, 130, 0.5),
-  $bg-custom-titlebar: rgba(36, 40, 56, 0.0),
+  $bg-custom-titlebar: rgba(36, 40, 56, 0),
   $text-primary: #f2f4ff,
   $text-secondary: #c8d0ea,
   $text-muted: #9aa2c7,
@@ -89,24 +89,21 @@
 }
 
 // --- Main window -------------------------------------------------------------
+// NOTE: we deliberately do NOT touch `--wave-color-solid-base-fill`
+// TIDAL also uses it as a *text* colour (primary buttons, active tab), so
+// clearing it would make that text invisible.
 html {
   background: transparent !important;
   background-color: transparent !important;
+  --market-core-fill-black-color: transparent !important;
+  --market-core-fill-black-light-mode-color: transparent !important;
+  --market-core-fill-black-dark-mode-color: transparent !important;
+  --frosted-glass-nav-blur: transparent !important;
 }
 
 body {
   background: rgba(0, 0, 0, 0.75) !important;
   background-color: rgba(0, 0, 0, 0.75) !important;
-}
-
-// NOTE: we deliberately do NOT touch `--wave-color-solid-base-fill`
-// TIDAL also uses it as a *text* colour (primary buttons, active tab), so
-// clearing it would make that text invisible.
-html {
-  --market-core-fill-black-color: transparent !important;
-  --market-core-fill-black-light-mode-color: transparent !important;
-  --market-core-fill-black-dark-mode-color: transparent !important;
-  --frosted-glass-nav-blur: transparent !important;
 }
 
 [class*="_main_"],

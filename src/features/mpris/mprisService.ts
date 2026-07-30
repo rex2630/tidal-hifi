@@ -245,15 +245,14 @@ export class MprisService {
    * Strip a doubled Tidal resource prefix from an image URL (a Tidal bug with
    * uploaded content), returning the corrected art URL.
    */
-  private resolveArtUrl(image: string | undefined): string {
-    const artUrl = image || "";
-    if (artUrl.startsWith(MprisService.TIDAL_RESOURCE_PREFIX)) {
-      const afterPrefix = artUrl.substring(MprisService.TIDAL_RESOURCE_PREFIX.length);
+  private resolveArtUrl(image = ""): string {
+    if (image.startsWith(MprisService.TIDAL_RESOURCE_PREFIX)) {
+      const afterPrefix = image.substring(MprisService.TIDAL_RESOURCE_PREFIX.length);
       if (afterPrefix.startsWith("http://") || afterPrefix.startsWith("https://")) {
         return afterPrefix;
       }
     }
-    return artUrl;
+    return image;
   }
 
   /**

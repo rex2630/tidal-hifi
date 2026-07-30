@@ -25,9 +25,24 @@ export const downloadFile = (fileUrl: string, targetPath: string): Promise<strin
   });
 
 function requestFile(url: string, redirectCount: number, ctx: DownloadContext): void {
-  const client = url.startsWith("https") ? https : http;
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    ctx.reject(new Error(`Invalid URL for ${ctx.fileUrl}`));
+    return;
+  }
+
+  if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+    ctx.reject(new Error(`Blocked request to unsupported protocol for ${ctx.fileUrl}`));
+    return;
+  }
+
+  const client = parsedUrl.protocol === "https:" ? https : http;
   client
-    .get(url, (response) => handleResponse(response, url, redirectCount, ctx))
+    .get(parsedUrl, (response) =>
+      handleResponse(response, parsedUrl.toString(), redirectCount, ctx),
+    )
     .on("error", ctx.reject);
 }
 
