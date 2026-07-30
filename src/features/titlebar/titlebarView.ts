@@ -9,6 +9,7 @@ let titlebarObserver: MutationObserver | null = null;
 // swapped when the window is (un)maximized. Refreshed on every (re)mount.
 let maximizeButton: HTMLButtonElement | null = null;
 let maximizeStateListenerAttached = false;
+let titleElement: HTMLSpanElement | null = null;
 
 const svgIcon = (paths: string): string =>
   `<svg viewBox="0 0 12 12" fill="none" aria-hidden="true">${paths}</svg>`;
@@ -56,6 +57,12 @@ const applyMaximizeState = (isMaximized: boolean): void => {
   maximizeButton.setAttribute("aria-label", label);
 };
 
+export const setCustomTitlebarTitle = (title: string): void => {
+  if (titleElement) {
+    titleElement.textContent = title;
+  }
+};
+
 const build = (): HTMLElement => {
   const bar = document.createElement("div");
   bar.id = BAR_ID;
@@ -68,6 +75,7 @@ const build = (): HTMLElement => {
   const title = document.createElement("span");
   title.className = "thf-title";
   title.textContent = "TIDAL Hi-Fi";
+  titleElement = title;
 
   const controls = document.createElement("div");
   if (!isMac) {
