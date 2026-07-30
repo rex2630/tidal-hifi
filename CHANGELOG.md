@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### added
 
-- Custom titlebar. Collaborated with [Rex2630](https://github.com/rex2630)
+- Custom (themeable) titlebar. Collaborated with [Rex2630](https://github.com/rex2630)
 - Transparent theme
 - Added tv-mode as an advanced settings in alpha mode.
 - Added a "Prevent system sleep during playback" setting so the system/monitor can sleep even while playing - fixes #732
