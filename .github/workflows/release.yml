@@ -52,6 +52,7 @@ jobs:
     needs: quality
     runs-on: macos-latest
     env:
+      ENABLE_EVS_SIGNING: "true"
       EVS_ACCOUNT_NAME: ${{ secrets.EVS_ACCOUNT_NAME }}
       EVS_PASSWD: ${{ secrets.EVS_PASSWD }}
       EVS_NO_ASK: "1"
@@ -83,6 +84,7 @@ jobs:
     needs: quality
     runs-on: windows-latest
     env:
+      ENABLE_EVS_SIGNING: "true"
       EVS_ACCOUNT_NAME: ${{ secrets.EVS_ACCOUNT_NAME }}
       EVS_PASSWD: ${{ secrets.EVS_PASSWD }}
       EVS_NO_ASK: "1"

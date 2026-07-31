@@ -32,6 +32,8 @@ jobs:
 
   build_on_mac:
     runs-on: macos-latest
+    env:
+      ENABLE_EVS_SIGNING: "false"
     steps:
       - uses: actions/checkout@master
       - uses: actions/setup-node@master
