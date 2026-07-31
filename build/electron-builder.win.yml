@@ -1,6 +1,6 @@
 extends: ./build/electron-builder.base.yml
 
-afterSign: ./scripts/evs-sign-win.js
+afterSign: ./scripts/evs-sign.js
 
 win:
   target: msi
