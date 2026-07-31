@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$1" != "" ]; then # check if arg 1 is present
+if [[ "$1" != "" ]]; then # check if arg 1 is present
     FILE=$1
 else
     echo "Please provide a file as an argument."

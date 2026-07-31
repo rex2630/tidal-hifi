@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu } from "electron";
 
+import { isWindowTransparencyEnabled } from "../features/windowTransparency/windowTransparency";
 import name from "./../constants/values";
 import { showSettingsWindow } from "./settings";
 
@@ -17,7 +18,7 @@ const tidalMagazineEntry = {
   label: "Magazine",
   click() {
     const magazineWindow = new BrowserWindow({
-      transparent: true,
+      transparent: isWindowTransparencyEnabled(),
       autoHideMenuBar: true,
       webPreferences: {
         sandbox: false,

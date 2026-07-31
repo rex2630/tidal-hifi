@@ -1,3 +1,7 @@
+// Restore `util.isError` (removed in Node 23+) before anything loads dbus-next /
+// usocket, which still call it. Must stay first. See ./utility/nodeCompat.
+import "./utility/nodeCompat";
+
 import path from "node:path";
 import { initialize } from "@electron/remote/main";
 import { app, BrowserWindow, components, ipcMain, screen, session } from "electron";
@@ -20,9 +24,11 @@ import { MprisService } from "./features/mpris/mprisService";
 import { SharingService } from "./features/sharingService/sharingService";
 import { injectThemeCss, injectThemeCssIfChanged } from "./features/theming/theming";
 import { tidalUrl } from "./features/tidal/url";
+import { injectTitlebarStyles } from "./features/titlebar/titlebar";
+import { isWindowTransparencyEnabled } from "./features/windowTransparency/windowTransparency";
 import type { MediaInfo } from "./models/mediaInfo";
 import { MediaStatus } from "./models/mediaStatus";
-import { initRPC, rpc, unRPC } from "./scripts/discord";
+import { initRPC, isRPCConnected, unRPC } from "./scripts/discord";
 import { updateMediaInfo } from "./scripts/mediaInfo";
 import { addMenu } from "./scripts/menu";
 import { isSandboxDisabled } from "./scripts/sandbox";
@@ -101,7 +107,7 @@ function syncMenuBarWithStore() {
 function performCleanup(): void {
   try {
     Logger.log("Performing application cleanup...");
-    if (rpc) {
+    if (isRPCConnected()) {
       unRPC();
     }
     closeSettingsWindow();
@@ -156,6 +162,11 @@ function getCustomProtocolUrl(args: string[]) {
   try {
     const parsed = new URL(url);
     const tidalParsed = new URL(tidalUrl);
+    // Only ever navigate to web content; never file:, data:, etc.
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      Logger.log(`Blocked custom protocol URL with unexpected scheme: ${parsed.protocol}`);
+      return null;
+    }
     if (parsed.hostname !== tidalParsed.hostname) {
       Logger.log(`Blocked custom protocol URL with unexpected host: ${parsed.hostname}`);
       return null;
@@ -182,27 +193,39 @@ function configureUserAgent() {
   }
 }
 
-function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
+function createWindow({ x = 0, y = 0, backgroundColor = "white" } = {}) {
   // Transparency is opt-in and never enabled on macOS (it caused issues there).
-  const transparent =
-    process.platform !== "darwin" &&
-    settingsStore?.get<string, boolean>(settings.windowTransparency);
+  const transparent = isWindowTransparencyEnabled();
+  const showCustomTitlebar = settingsStore.get(settings.showCustomTitlebar);
+  const isMac = process.platform === "darwin";
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    x: options.x,
-    y: options.y,
+    x,
+    y,
     width: settingsStore?.get(settings.windowBounds.width),
     height: settingsStore?.get(settings.windowBounds.height),
     icon,
-    backgroundColor: options.backgroundColor,
+    // A transparent window still needs a transparent base colour, otherwise the
+    // opaque backgroundColor sits behind the page and shows through wherever the
+    // (themed) CSS is transparent — defeating the point of a transparent theme.
+    backgroundColor: transparent ? "#00000000" : backgroundColor,
     autoHideMenuBar: true,
+    // Custom titlebar per platform (opt-in, applied at window creation —
+    // toggling the setting takes effect after a restart):
+    //  - Windows/Linux: go fully frameless; our bar draws its own min/max/close.
+    //  - macOS: keep `frame: true` and use `hiddenInset` so the native traffic
+    //    lights still render (a frameless macOS window loses them); our bar only
+    //    draws the title and leaves room for the lights.
+    frame: isMac ? true : !showCustomTitlebar,
+    titleBarStyle: isMac && showCustomTitlebar ? "hiddenInset" : "default",
+    trafficLightPosition: isMac && showCustomTitlebar ? { x: 14, y: 13 } : undefined,
     transparent,
+    vibrancy: isMac && transparent ? "under-window" : undefined,
+    visualEffectState: isMac && transparent ? "active" : undefined,
     webPreferences: {
       ...windowPreferences,
-      ...{
-        preload: path.join(__dirname, "preload.js"),
-      },
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
@@ -215,7 +238,20 @@ function createWindow(options = { x: 0, y: 0, backgroundColor: "white" }) {
   // This survives SPA hydration / DOM replacement that wipes preload-injected <style> elements.
   mainWindow.webContents.on("did-finish-load", () => {
     injectThemeCss(app, mainWindow.webContents);
+    // Same lifecycle hook, same technique: paint the custom titlebar.
+    if (settingsStore.get(settings.showCustomTitlebar)) {
+      injectTitlebarStyles(mainWindow.webContents);
+    }
   });
+
+  // Keep the custom titlebar's maximize/restore button in sync with the window.
+  const sendMaximizeState = () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(globalEvents.titlebarMaximizeChanged, mainWindow.isMaximized());
+    }
+  };
+  mainWindow.on("maximize", sendMaximizeState);
+  mainWindow.on("unmaximize", sendMaximizeState);
 
   // find the custom protocol argument
   const customProtocolUrl = getCustomProtocolUrl(process.argv);
@@ -292,60 +328,99 @@ function registerHttpProtocols() {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on("ready", async () => {
-  // check if the app is the main instance and multiple instances are not allowed
-  if (isMainInstance() && !isMultipleInstancesAllowed()) {
-    app.on("second-instance", (_, commandLine) => {
-      const customProtocolUrl = getCustomProtocolUrl(commandLine);
-
-      if (customProtocolUrl) {
-        mainWindow.loadURL(customProtocolUrl);
-      }
-
-      if (mainWindow) {
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.show();
-        mainWindow.focus();
-      }
-    });
+/**
+ * When this is the sole instance, focus/raise the existing window (and honour any
+ * incoming custom-protocol URL) instead of letting a second launch spawn a new one.
+ */
+function registerSecondInstanceHandler() {
+  if (!isMainInstance() || isMultipleInstancesAllowed()) {
+    return;
   }
+
+  app.on("second-instance", (_, commandLine) => {
+    const customProtocolUrl = getCustomProtocolUrl(commandLine);
+
+    if (customProtocolUrl) {
+      mainWindow.loadURL(customProtocolUrl);
+    }
+
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
+/**
+ * Cancel TIDAL ad/session requests when ad-blocking is enabled.
+ */
+function setupAdBlock() {
+  if (!settingsStore.get(settings.adBlock)) {
+    return;
+  }
+
+  // TIDAL serves ads and account/session data from the same domain, so there
+  // is no `/users/<id>/...` request we can cancel without breaking startup:
+  // favorites, clients and subscription are all awaited by the web app before
+  // it renders, and cancelling any of them stalls startup for ~110s on an
+  // internal retry loop (issue #973).
+  const adRequestPatterns: RegExp[] = [
+    /\/users\/.*\d\?country/, // original broad rule (blocked everything below)
+    // /\/users\/\d+\/subscription\?country/, // subscription tier (drives the Subscribe button)
+    // /\/users\/\d+\/favorites\/ids\?country/, // favorite track ids
+    // /\/users\/\d+\/clients\?country/, // registered devices
+  ];
+  const filter = { urls: [`${tidalUrl}/*`] };
+  session.defaultSession.webRequest.onBeforeRequest(filter, (details, callback) => {
+    if (adRequestPatterns.some((pattern) => pattern.test(details.url))) {
+      Logger.log(`[adBlock] cancelling request: ${details.url}`);
+      callback({ cancel: true });
+    } else {
+      callback({ cancel: false });
+    }
+  });
+}
+
+/**
+ * Create the main window and start the optional services enabled in settings.
+ */
+function initializeWindowAndServices() {
+  createWindow();
+  addMenu(mainWindow);
+  createSettingsWindow();
+  if (settingsStore.get(settings.trayIcon)) {
+    addTray(mainWindow, { icon });
+    refreshTray(mainWindow);
+  }
+  if (settingsStore.get(settings.api)) {
+    startApi(mainWindow);
+  }
+  if (settingsStore.get(settings.enableDiscord)) {
+    initRPC();
+  }
+  if (settingsStore.get(settings.mpris)) {
+    mprisService = new MprisService(mainWindow);
+    mprisService.initialize();
+  }
+
+  // Hide window on startup if startMinimized is enabled
+  if (settingsStore.get(settings.startMinimized)) {
+    mainWindow.hide();
+  }
+}
+
+app.on("ready", async () => {
+  registerSecondInstanceHandler();
 
   if (isMainInstance() || isMultipleInstancesAllowed()) {
     await components.whenReady();
     initialize();
 
-    // Adblock
-    if (settingsStore.get(settings.adBlock)) {
-      const filter = { urls: [`${tidalUrl}/*`] };
-      session.defaultSession.webRequest.onBeforeRequest(filter, (details, callback) => {
-        if (details.url.match(/\/users\/.*\d\?country/)) callback({ cancel: true });
-        else callback({ cancel: false });
-      });
-    }
+    setupAdBlock();
     Logger.log("components ready:", components.status());
 
-    createWindow();
-    addMenu(mainWindow);
-    createSettingsWindow();
-    if (settingsStore.get(settings.trayIcon)) {
-      addTray(mainWindow, { icon });
-      refreshTray(mainWindow);
-    }
-    if (settingsStore.get(settings.api)) {
-      startApi(mainWindow);
-    }
-    if (settingsStore.get(settings.enableDiscord)) {
-      initRPC();
-    }
-    if (settingsStore.get(settings.mpris)) {
-      mprisService = new MprisService(mainWindow);
-      mprisService.initialize();
-    }
-
-    // Hide window on startup if startMinimized is enabled
-    if (settingsStore.get(settings.startMinimized)) {
-      mainWindow.hide();
-    }
+    initializeWindowAndServices();
   } else {
     gracefulExit();
   }
@@ -393,7 +468,7 @@ ipcMain.on(globalEvents.updateInfo, (_event, arg: MediaInfo) => {
     }
   }
 
-  if (arg.status === MediaStatus.playing) {
+  if (arg.status === MediaStatus.playing && settingsStore.get(settings.preventSleep)) {
     mainInhibitorId = acquireInhibitorIfInactive(mainInhibitorId);
   } else {
     releaseInhibitorIfActive(mainInhibitorId);
@@ -432,9 +507,9 @@ ipcMain.on(globalEvents.storeChanged, () => {
   // read at startup (hotkeys, window title).
   mainWindow.webContents.send(globalEvents.storeChanged);
 
-  if (settingsStore.get(settings.enableDiscord) && !rpc) {
+  if (settingsStore.get(settings.enableDiscord) && !isRPCConnected()) {
     initRPC();
-  } else if (!settingsStore.get(settings.enableDiscord) && rpc) {
+  } else if (!settingsStore.get(settings.enableDiscord) && isRPCConnected()) {
     unRPC();
   }
 
@@ -465,6 +540,27 @@ ipcMain.on(globalEvents.restartApp, () => {
 
 ipcMain.on(globalEvents.quit, () => {
   gracefulExit();
+});
+
+ipcMain.on(globalEvents.titlebarMinimize, () => {
+  mainWindow?.minimize();
+});
+
+ipcMain.on(globalEvents.titlebarMaximizeToggle, () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow.maximize();
+  }
+});
+
+ipcMain.on(globalEvents.titlebarClose, () => {
+  mainWindow?.close();
+});
+
+ipcMain.handle(globalEvents.titlebarGetMaximized, () => {
+  return mainWindow?.isMaximized() ?? false;
 });
 
 ipcMain.handle(globalEvents.getUniversalLink, async (_event, url) => {

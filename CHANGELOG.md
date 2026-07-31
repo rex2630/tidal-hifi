@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.1.0]
+
+### added
+
+- Custom (themeable) titlebar. Collaborated with [Rex2630](https://github.com/rex2630)
+- Transparent theme
+- Added tv-mode as an advanced settings in alpha mode.
+- Added a "Prevent system sleep during playback" setting so the system/monitor can sleep even while playing - fixes #732
+- Added an advanced "Downscale notification album art" flag (off by default) that shrinks notification images to work around notification daemons that freeze on large DBus image payloads - mitigates #642
+
+### fixes
+
+- player state (timestamps, progress bar, seek position & volume) is now read from the active audio buffer instead of a hardcoded element, fixing broken Discord timestamps and progress bar after TIDAL's gapless playback switches buffers, thanks to [AleksandarN-BG](https://github.com/AleksandarN-BG)
+- Discord rich presence no longer emits a bogus `00:00` / `00:00` during track changes and now updates when scrubbing/seeking
+- util.isError compat shim added
+- Themes have slight UI fixes by -[Rex2630](https://github.com/rex2630)
+- Mac OS now uses "vibrancy" instead of transparency by -[Rex2630](https://github.com/rex2630)
+- Notification support is checked before sending notifications - fixes #665
+
+### changed
+
+- the version shown in the settings' About section is now derived from the app version automatically, so it no longer has to be updated by hand
+
 ## [8.0.0]
 
 ### added

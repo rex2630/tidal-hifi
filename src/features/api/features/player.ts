@@ -10,7 +10,7 @@ const parseNumberParam = (value: unknown, defaultValue: number = 0): number => {
   if (typeof value !== "string" || value.trim() === "") {
     return defaultValue;
   }
-  const parsed = parseFloat(value);
+  const parsed = Number.parseFloat(value);
   return Number.isNaN(parsed) ? defaultValue : parsed;
 };
 

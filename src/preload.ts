@@ -7,6 +7,7 @@ import { settings } from "./constants/settings";
 import { getCurrentHotkeyConfig } from "./features/hotkeys";
 import { Logger } from "./features/logger";
 import { getTrackURL, getUniversalLink } from "./features/tidal/url";
+import { mountCustomTitlebar, setCustomTitlebarTitle } from "./features/titlebar/titlebarView";
 import { getEmptyMediaInfo, type MediaInfo } from "./models/mediaInfo";
 import { RepeatState, type RepeatStateType } from "./models/repeatState";
 import { isSeekEvent } from "./models/seekEvent";
@@ -22,6 +23,12 @@ import { ReduxController } from "./TidalControllers/ReduxController/ReduxControl
 import type { TidalController } from "./TidalControllers/TidalController";
 
 const staticTitle = "TIDAL Hi-Fi";
+
+// Build the draggable custom titlebar in this (isolated-world) preload, so no
+// window action is exposed to page scripts and no executeJavaScript is needed.
+if (settingsStore.get(settings.showCustomTitlebar)) {
+  mountCustomTitlebar();
+}
 
 let currentSong = "";
 
@@ -215,11 +222,13 @@ function addFullScreenListeners() {
  * `staticWindowTitle` toggle takes effect without a restart.
  */
 function applyWindowTitle() {
-  if (settingsStore.get(settings.staticWindowTitle) || !currentMediaInfo.title) {
-    setTitle(staticTitle);
-  } else {
-    setTitle(`${currentMediaInfo.title} - ${currentMediaInfo.artists}`);
-  }
+  const title =
+    settingsStore.get(settings.staticWindowTitle) || !currentMediaInfo.title
+      ? staticTitle
+      : `${currentMediaInfo.title} - ${currentMediaInfo.artists}`;
+
+  setTitle(title);
+  setCustomTitlebarTitle(title);
 }
 
 /**
@@ -382,9 +391,7 @@ tidalController.onMediaInfoUpdate(async (newState) => {
     currentSong = songDashArtistTitle;
 
     // update the window title with the new info
-    settingsStore.get(settings.staticWindowTitle)
-      ? setTitle(staticTitle)
-      : setTitle(`${currentMediaInfo.title} - ${currentMediaInfo.artists}`);
+    applyWindowTitle();
 
     // Download the best available image for local use
     let imageUrlToDownload = "";
@@ -410,43 +417,44 @@ tidalController.onMediaInfoUpdate(async (newState) => {
     // if titleOrArtists didn't change then only minor mediaInfo (like timings) changed, so don't bother the user with notifications
     updateMediaInfo(currentMediaInfo, false);
   }
-  /**
-   * automatically skip a song if the artists are found in the list of artists to skip
-   * @param {*} artists array of artists
-   */
-  function skipArtistsIfFoundInSkippedArtistsList(artists: string[]) {
-    if (settingsStore.get(settings.skipArtists)) {
-      const skippedArtists = settingsStore.get<string, string[]>(settings.skippedArtists);
-      if (skippedArtists.length > 0) {
-        const artistsToSkip = skippedArtists.map((artist) => artist.trim().toLowerCase());
-        const foundArtist = artists.some(
-          (artist) => artist && artistsToSkip.includes(artist.trim().toLowerCase()),
-        );
-        if (foundArtist) {
-          tidalController.next();
-        }
+});
+
+/**
+ * automatically skip a song if the artists are found in the list of artists to skip
+ * @param {*} artists array of artists
+ */
+function skipArtistsIfFoundInSkippedArtistsList(artists: string[]) {
+  if (settingsStore.get(settings.skipArtists)) {
+    const skippedArtists = settingsStore.get<string, string[]>(settings.skippedArtists);
+    if (skippedArtists.length > 0) {
+      const artistsToSkip = new Set(skippedArtists.map((artist) => artist.trim().toLowerCase()));
+      const foundArtist = artists.some(
+        (artist) => artist && artistsToSkip.has(artist.trim().toLowerCase()),
+      );
+      if (foundArtist) {
+        tidalController.next();
       }
     }
   }
+}
 
-  /**
-   * Skip the current track if its title contains any of the configured
-   * keywords (case-insensitive substring match), e.g. "live" or "remix".
-   */
-  function skipTracksIfTitleMatchesSkippedTracksList(title: string) {
-    if (!title || !settingsStore.get(settings.skipTracks)) return;
-    const skippedTracks = settingsStore
-      .get<string, string[]>(settings.skippedTracks)
-      .map((keyword) => keyword.trim())
-      .filter((keyword) => keyword.length > 0);
-    if (skippedTracks.length === 0) return;
-    const lowerTitle = title.toLowerCase();
-    const match = skippedTracks.some((keyword) => lowerTitle.includes(keyword.toLowerCase()));
-    if (match) {
-      tidalController.next();
-    }
+/**
+ * Skip the current track if its title contains any of the configured
+ * keywords (case-insensitive substring match), e.g. "live" or "remix".
+ */
+function skipTracksIfTitleMatchesSkippedTracksList(title: string) {
+  if (!title || !settingsStore.get(settings.skipTracks)) return;
+  const skippedTracks = settingsStore
+    .get<string, string[]>(settings.skippedTracks)
+    .map((keyword) => keyword.trim())
+    .filter((keyword) => keyword.length > 0);
+  if (skippedTracks.length === 0) return;
+  const lowerTitle = title.toLowerCase();
+  const match = skippedTracks.some((keyword) => lowerTitle.includes(keyword.toLowerCase()));
+  if (match) {
+    tidalController.next();
   }
-});
+}
 
 addHotKeys();
 addIPCEventListeners();

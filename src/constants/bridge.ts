@@ -36,4 +36,6 @@ export const settingsBridgeChannels = {
   trayIconExists: "settings:trayIconExists",
   /** send: open an external http(s) url in the default browser */
   openExternal: "settings:openExternal",
+  /** sync: read the running app version, returns the version string */
+  getAppVersion: "settings:getAppVersion",
 } as const;

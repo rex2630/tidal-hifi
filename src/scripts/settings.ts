@@ -3,6 +3,7 @@ import { app, BrowserWindow, shell } from "electron";
 
 import { settings } from "../constants/settings";
 import { injectThemeCss, injectThemeCssIfChanged } from "../features/theming/theming";
+import { isWindowTransparencyEnabled } from "../features/windowTransparency/windowTransparency";
 import { isSandboxDisabled } from "./sandbox";
 import { settingsStore } from "./settingsStore";
 
@@ -24,7 +25,7 @@ export const createSettingsWindow = () => {
     height: 700,
     resizable: true,
     show: false,
-    transparent: true,
+    transparent: isWindowTransparencyEnabled(),
     frame: false,
     title: "TIDAL Hi-Fi settings",
     webPreferences: {

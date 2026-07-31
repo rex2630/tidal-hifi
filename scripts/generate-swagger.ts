@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import swaggerjsdoc from "swagger-jsdoc";
 
-import packagejson from "./../package.json";
+const packagejson = JSON.parse(fs.readFileSync("package.json", "utf8"));
 
 const specs = swaggerjsdoc({
   definition: {
@@ -27,5 +27,13 @@ const specs = swaggerjsdoc({
   apis: ["**/*.ts"],
 });
 
-fs.writeFileSync("src/features/api/swagger.json", JSON.stringify(specs, null, 2), "utf8");
-console.log("Written swagger.json");
+const outputPath = "src/features/api/swagger.json";
+const contents = JSON.stringify(specs, null, 2);
+
+const existing = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, "utf8") : null;
+if (existing === contents) {
+  console.log("swagger.json unchanged, skipping write");
+} else {
+  fs.writeFileSync(outputPath, contents, "utf8");
+  console.log("Written swagger.json");
+}

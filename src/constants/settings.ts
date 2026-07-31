@@ -15,6 +15,7 @@ export const settings = {
     tidalUrl: "advanced.tidalUrl",
     userAgent: "advanced.userAgent",
     controllerType: "advanced.controllerType",
+    notificationImageDownscaling: "advanced.notificationImageDownscaling",
   },
   api: "api",
   apiSettings: {
@@ -60,6 +61,7 @@ export const settings = {
   mpris: "mpris",
   notifications: "notifications",
   playBackControl: "playBackControl",
+  preventSleep: "preventSleep",
   singleInstance: "singleInstance",
   skipArtists: "skipArtists",
   skippedArtists: "skippedArtists",
@@ -72,6 +74,7 @@ export const settings = {
   trayIconPath: "trayIconPath",
   updateFrequency: "updateFrequency",
   windowTransparency: "windowTransparency",
+  showCustomTitlebar: "showCustomTitlebar",
   windowBounds: {
     root: "windowBounds",
     width: "windowBounds.width",

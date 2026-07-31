@@ -49,8 +49,8 @@ function getTrayIconPath(defaultIcon: string): string {
   return defaultIcon;
 }
 
-export const addTray = (mainWindow: BrowserWindow, options = { icon: "" }) => {
-  const iconPath = getTrayIconPath(options.icon);
+export const addTray = (mainWindow: BrowserWindow, { icon = "" } = {}) => {
+  const iconPath = getTrayIconPath(icon);
   tray = new Tray(iconPath);
   tray.setIgnoreDoubleClickEvents(true);
   tray.setToolTip("Tidal-hifi");

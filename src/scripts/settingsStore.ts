@@ -38,6 +38,7 @@ const defaultSettings = {
     tidalUrl: "https://tidal.com",
     controllerType: "mediaSessionController",
     userAgent: values.defaultUserAgent,
+    notificationImageDownscaling: false,
   },
   api: true,
   apiSettings: {
@@ -78,6 +79,7 @@ const defaultSettings = {
   mpris: true,
   notifications: true,
   playBackControl: true,
+  preventSleep: true,
   singleInstance: true,
   skipArtists: false,
   skippedArtists: [""],
@@ -85,6 +87,7 @@ const defaultSettings = {
   skippedTracks: [""],
   startMinimized: false,
   staticWindowTitle: false,
+  showCustomTitlebar: false,
   theme: "none",
   trayIcon: true,
   trayIconPath: "",
@@ -179,6 +182,12 @@ const migrations: NonNullable<Store.Options<typeof defaultSettings>["migrations"
   },
   "8.0.0": (migrationStore) => {
     buildMigration("8.0.0", migrationStore, [{ key: settings.windowTransparency, value: false }]);
+  },
+  "8.0.1": (migrationStore) => {
+    buildMigration("8.0.1", migrationStore, [
+      { key: settings.preventSleep, value: true },
+      { key: settings.advanced.notificationImageDownscaling, value: false },
+    ]);
   },
 };
 

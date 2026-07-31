@@ -10,6 +10,7 @@ $bg-surface: #24283b !default;
 $bg-elevated: #292e42 !default;
 $bg-hover: #414868 !default;
 $bg-selection: #33467c !default;
+$bg-custom-titlebar: #000000D9 !default;
 
 $text-primary: #c0caf5 !default;
 $text-secondary: #a9b1d6 !default;
@@ -37,6 +38,10 @@ $border-dim: #3b4261 !default;
 
 #sidebar [class*="header_"] {
   background-color: $bg-secondary;
+}
+
+[class*="_sectionHeader_"] {
+  background-color: $bg-secondary !important;
 }
 
 [class*="logoWrapper"] {
@@ -103,6 +108,12 @@ $border-dim: #3b4261 !default;
 // =============================================================================
 // Header (new UI additions)
 // =============================================================================
+
+[class*="_header_"]::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: transparent !important;
+}
 
 [class*="logo_"][class*="logoVisible"] {
   color: $text-primary;
@@ -199,7 +210,7 @@ $border-dim: #3b4261 !default;
   transition: background-color 0.15s ease;
 
   &:hover {
-    background-color: $bg-surface;
+    background-color: $bg-main;
   }
 }
 
@@ -237,9 +248,9 @@ $border-dim: #3b4261 !default;
 }
 
 // Play buttons on cards (inside overlays only — not the footer play/pause)
-[class*="overlay"] [class*="playButton"] {
+[class*="overlay"] [class*="css-75d7zy"] {
   background-color: $accent-primary;
-  color: $bg-main;
+  color: $bg-secondary;
 }
 
 [class*="playButtonContainer"] [class*="playButtonInner"] {
@@ -708,7 +719,6 @@ $border-dim: #3b4261 !default;
 // =============================================================================
 
 [class*="notificationWrapper"] {
-  background-color: $bg-surface;
   color: $text-primary;
 }
 
@@ -719,7 +729,7 @@ $border-dim: #3b4261 !default;
 [class*="marketButton"] {
   &[class*="primary"] {
     background-color: $accent-primary;
-    color: $bg-main;
+    color: $bg-secondary;
 
     &:hover {
       opacity: 0.9;
@@ -744,4 +754,9 @@ $border-dim: #3b4261 !default;
       background-color: $bg-hover;
     }
   }
+}
+
+// Custom Titlebar
+#tidal-hifi-titlebar {
+  background: $bg-custom-titlebar !important;
 }

@@ -9,7 +9,13 @@ import { constrainPollingInterval } from "../../utility/pollingConstraints";
 import type { TidalController } from "../TidalController";
 import { UI_SELECTORS } from "./constants";
 import type { DomControllerOptions } from "./DomControllerOptions";
-import { clickElement, getElement, getElementAttribute, getElementText } from "./domHelpers";
+import {
+  clickElement,
+  getActivePlayer,
+  getElement,
+  getElementAttribute,
+  getElementText,
+} from "./domHelpers";
 
 export class DomTidalController implements TidalController<DomControllerOptions> {
   private updateSubscriber!: (state: Partial<MediaInfo>) => void;
@@ -22,8 +28,7 @@ export class DomTidalController implements TidalController<DomControllerOptions>
    * Get a player element
    */
   getPlayer() {
-    const player = getElement("player") as HTMLVideoElement;
-    return player || null;
+    return getActivePlayer();
   }
 
   /**
@@ -292,8 +297,8 @@ export class DomTidalController implements TidalController<DomControllerOptions>
   getAudioQuality(): AudioQuality | undefined {
     const badge = getElement("qualityBadge");
     if (!badge) return undefined;
-    const dataTest = badge.getAttribute("data-test") || "";
-    const match = dataTest.match(/^quality-badge-(.+)$/);
+    const dataTest = badge.dataset.test || "";
+    const match = /^quality-badge-(.+)$/.exec(dataTest);
     const badgeText = badge.textContent?.trim() || undefined;
     const quality = match?.[1] || badgeText;
     if (!quality && !badgeText) return undefined;

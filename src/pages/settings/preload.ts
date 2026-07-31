@@ -68,6 +68,7 @@ let adBlock: HTMLInputElement,
   mpris: HTMLInputElement,
   notifications: HTMLInputElement,
   playBackControl: HTMLInputElement,
+  preventSleep: HTMLInputElement,
   port: HTMLInputElement,
   singleInstance: HTMLInputElement,
   skipArtists: HTMLInputElement,
@@ -81,6 +82,7 @@ let adBlock: HTMLInputElement,
   trayIconPath: HTMLInputElement,
   updateFrequency: HTMLInputElement,
   windowTransparency: HTMLInputElement,
+  showCustomTitlebar: HTMLInputElement,
   enableListenBrainz: HTMLInputElement,
   ListenBrainzAPI: HTMLInputElement,
   ListenBrainzToken: HTMLInputElement,
@@ -94,7 +96,8 @@ let adBlock: HTMLInputElement,
   discord_idle_text: HTMLInputElement,
   discord_using_text: HTMLInputElement,
   userAgent: HTMLInputElement,
-  controllerType: HTMLSelectElement;
+  controllerType: HTMLSelectElement,
+  notificationImageDownscaling: HTMLInputElement;
 
 async function getThemeFiles() {
   const selectElement = document.getElementById("themesList") as HTMLSelectElement;
@@ -248,6 +251,7 @@ function refreshSettings() {
     notifications.checked = settingsStore.get(settings.notifications);
     playBackControl.checked = settingsStore.get(settings.playBackControl);
     port.value = settingsStore.get(settings.apiSettings.port);
+    preventSleep.checked = settingsStore.get(settings.preventSleep);
     singleInstance.checked = settingsStore.get(settings.singleInstance);
     skipArtists.checked = settingsStore.get(settings.skipArtists);
     skippedArtists.value = settingsStore.get<string, string[]>(settings.skippedArtists).join("\n");
@@ -259,6 +263,7 @@ function refreshSettings() {
     trayIcon.checked = settingsStore.get(settings.trayIcon);
     trayIconPath.value = settingsStore.get(settings.trayIconPath) || "";
     windowTransparency.checked = settingsStore.get(settings.windowTransparency);
+    showCustomTitlebar.checked = settingsStore.get(settings.showCustomTitlebar);
     // Validate tray icon path on load
     const validationElement = document.getElementById("trayIconPathValidation");
     if (validationElement) {
@@ -279,6 +284,9 @@ function refreshSettings() {
     discord_using_text.value = settingsStore.get(settings.discord.usingText);
     userAgent.value = settingsStore.get(settings.advanced.userAgent);
     controllerType.value = settingsStore.get(settings.advanced.controllerType);
+    notificationImageDownscaling.checked = settingsStore.get(
+      settings.advanced.notificationImageDownscaling,
+    );
 
     // initialize hotkeys
     initializeHotkeys(hotkeySearch, hotkeysList);
@@ -307,6 +315,21 @@ function hide() {
 }
 
 /**
+ * Populate the About section's version link from the running app version so it
+ * always matches package.json instead of being hardcoded in the HTML.
+ */
+function setAppVersion() {
+  const versionElement = document.querySelector<HTMLAnchorElement>(".about-section__version");
+  if (!versionElement) return;
+
+  const version = ipcRenderer.sendSync(settingsBridgeChannels.getAppVersion) as string;
+  if (!version) return;
+
+  versionElement.textContent = version;
+  versionElement.href = `https://github.com/Mastermindzh/tidal-hifi/releases/tag/${version}`;
+}
+
+/**
  * Bind UI components to functions after DOMContentLoaded
  */
 window.addEventListener("DOMContentLoaded", () => {
@@ -316,6 +339,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   getThemeFiles();
   handleFileUploads();
+  setAppVersion();
 
   document.getElementById("close")?.addEventListener("click", hide);
   document.getElementById("restartApp")?.addEventListener("click", () => {
@@ -326,7 +350,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.querySelectorAll(".external-link").forEach((elem) => {
     elem.addEventListener("click", (event) => {
-      const url = (event.target as HTMLElement).getAttribute("data-url");
+      const url = (event.target as HTMLElement).dataset.url;
       if (url) openExternal(url);
     });
   });
@@ -415,6 +439,7 @@ window.addEventListener("DOMContentLoaded", () => {
   notifications = get("notifications");
   playBackControl = get("playBackControl");
   port = get("port");
+  preventSleep = get("preventSleep");
   theme = get<HTMLSelectElement>("themesList");
   trayIcon = get("trayIcon");
   trayIconPath = get("trayIconPath");
@@ -439,7 +464,9 @@ window.addEventListener("DOMContentLoaded", () => {
   discord_idle_text = get("discord_idle_text");
   userAgent = get("userAgent");
   controllerType = get<HTMLSelectElement>("controllerType");
+  notificationImageDownscaling = get("notificationImageDownscaling");
   windowTransparency = get("windowTransparency");
+  showCustomTitlebar = get("showCustomTitlebar");
 
   refreshSettings();
   addInputListener(adBlock, settings.adBlock);
@@ -462,6 +489,7 @@ window.addEventListener("DOMContentLoaded", () => {
   addInputListener(notifications, settings.notifications);
   addInputListener(playBackControl, settings.playBackControl);
   addInputListener(port, settings.apiSettings.port);
+  addInputListener(preventSleep, settings.preventSleep);
   addInputListener(skipArtists, settings.skipArtists);
   addTextAreaListener(skippedArtists, settings.skippedArtists);
   addInputListener(skipTracks, settings.skipTracks);
@@ -474,6 +502,7 @@ window.addEventListener("DOMContentLoaded", () => {
   addTrayIconPathListener(trayIconPath, settings.trayIconPath);
   addInputListener(updateFrequency, settings.updateFrequency);
   addInputListener(windowTransparency, settings.windowTransparency);
+  addInputListener(showCustomTitlebar, settings.showCustomTitlebar);
   addInputListener(
     enableListenBrainz,
     settings.ListenBrainz.enabled,
@@ -495,4 +524,5 @@ window.addEventListener("DOMContentLoaded", () => {
   addInputListener(discord_using_text, settings.discord.usingText);
   addInputListener(userAgent, settings.advanced.userAgent);
   addSelectListener(controllerType, settings.advanced.controllerType);
+  addInputListener(notificationImageDownscaling, settings.advanced.notificationImageDownscaling);
 });

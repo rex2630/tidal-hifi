@@ -31,7 +31,7 @@ export function isSafeThemeName(name: string): boolean {
   if (!name || name.length > 255) return false;
   // Reject NUL and other control characters outright.
   for (let i = 0; i < name.length; i++) {
-    if (name.charCodeAt(i) < 0x20) return false;
+    if ((name.codePointAt(i) ?? 0) < 0x20) return false;
   }
   // Split into path segments (allowing nested themes) and reject traversal,
   // current-dir, or empty segments (the latter catch absolute paths and "//").
