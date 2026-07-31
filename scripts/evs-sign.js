@@ -39,9 +39,9 @@ exports.default = async function (context) {
   // Build the Python command arguments for castLabs EVS package signing.
   // Windows uses the Python launcher (`py`) so `-3` is required to force Python 3.
   const args =
-  electronPlatformName === "win32"
-  ? ["-3", "-m", "castlabs_evs.vmp", "-n", "sign-pkg", appOutDir]
-  : ["-m", "castlabs_evs.vmp", "-n", "sign-pkg", appOutDir];
+    electronPlatformName === "win32"
+      ? ["-3", "-m", "castlabs_evs.vmp", "-n", "sign-pkg", appOutDir]
+      : ["-m", "castlabs_evs.vmp", "-n", "sign-pkg", appOutDir];
 
   // Run the signing command synchronously so the build waits for completion.
   // `stdio: "inherit"` forwards output directly to the current process for visibility.
