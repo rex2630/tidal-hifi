@@ -1,0 +1,5 @@
+extends: ./build/electron-builder.base.yml
+
+mac:
+  category: public.app-category.entertainment
+  afterPack: ./scripts/evs-sign.js
