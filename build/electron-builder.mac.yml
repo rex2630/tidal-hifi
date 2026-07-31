@@ -1,4 +1,3 @@
 extends: ./build/electron-builder.base.yml
 
-mac:
-  afterPack: ./scripts/evs-sign.js
+afterPack: ./scripts/evs-sign.js
